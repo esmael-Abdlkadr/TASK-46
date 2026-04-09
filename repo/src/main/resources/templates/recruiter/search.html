@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Intelligent Search - Workforce Hub</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand"><a href="/">Workforce &amp; Talent Operations Hub</a></div>
+        <div class="navbar-menu">
+            <span class="navbar-user">Logged in as: <strong sec:authentication="name">User</strong></span>
+            <div class="navbar-links">
+                <a th:href="@{/recruiter/dashboard}">Dashboard</a>
+                <a th:href="@{/recruiter/candidates}">Candidates</a>
+                <a th:href="@{/recruiter/job-profiles}">Job Profiles</a>
+                <a th:href="@{/recruiter/search}" class="active">Intelligent Search</a>
+                <a th:href="@{/recruiter/pipeline}">Pipeline</a>
+                <a th:href="@{/recruiter/talent-pools}">Talent Pools</a>
+            </div>
+            <form th:action="@{/logout}" method="post" class="logout-form">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit" class="btn btn-logout">Logout</button>
+            </form>
+        </div>
+    </nav>
+
+    <main class="container">
+        <h2>Intelligent Matching &amp; Search</h2>
+
+        <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+        <div th:if="${loadedSearchName}" class="alert alert-success" th:text="'Loaded saved search: ' + ${loadedSearchName}"></div>
+
+        <!-- Saved searches sidebar -->
+        <div class="search-layout">
+            <div class="search-sidebar">
+                <div class="panel">
+                    <h3>Saved Searches</h3>
+                    <ul class="saved-list">
+                        <li th:each="ss : ${savedSearches}">
+                            <a th:href="@{/recruiter/search/saved/{id}/load(id=${ss.id})}" th:text="${ss.name}"></a>
+                            <small th:text="${#temporals.format(ss.createdAt, 'MMM d')}"></small>
+                        </li>
+                        <li th:if="${#lists.isEmpty(savedSearches)}"><em>No saved searches</em></li>
+                    </ul>
+                </div>
+                <div class="panel" style="margin-top:1rem">
+                    <h3>Search Snapshots</h3>
+                    <ul class="saved-list">
+                        <li th:each="snap : ${snapshots}">
+                            <a th:href="@{/recruiter/search/snapshot/{id}(id=${snap.id})}" th:text="${snap.name}"></a>
+                            <small th:text="${#temporals.format(snap.createdAt, 'MMM d')}"></small>
+                        </li>
+                        <li th:if="${#lists.isEmpty(snapshots)}"><em>No snapshots</em></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="search-main">
+                <!-- Search form -->
+                <form th:action="@{/recruiter/search/execute}" method="post" id="search-form" class="panel">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="jobProfileId">Match Against Job Profile</label>
+                            <select id="jobProfileId" name="jobProfileId" class="form-control">
+                                <option value="">-- Select (optional) --</option>
+                                <option th:each="jp : ${jobProfiles}" th:value="${jp.id}" th:text="${jp.title}"
+                                        th:selected="${searchRequest.jobProfileId == jp.id}"></option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="keyword">Keyword</label>
+                            <input type="text" id="keyword" name="keyword" th:value="${searchRequest.keyword}" class="form-control" placeholder="Name, title, summary..."/>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="locationFilter">Location</label>
+                            <input type="text" id="locationFilter" name="locationFilter" th:value="${searchRequest.locationFilter}" class="form-control"/>
+                        </div>
+                        <div class="form-group">
+                            <label for="minYearsExperience">Min Years Exp</label>
+                            <input type="number" id="minYearsExperience" name="minYearsExperience" th:value="${searchRequest.minYearsExperience}" class="form-control" min="0"/>
+                        </div>
+                        <div class="form-group">
+                            <label for="maxYearsExperience">Max Years Exp</label>
+                            <input type="number" id="maxYearsExperience" name="maxYearsExperience" th:value="${searchRequest.maxYearsExperience}" class="form-control" min="0"/>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="educationLevel">Education Level</label>
+                            <input type="text" id="educationLevel" name="educationLevel" th:value="${searchRequest.educationLevel}" class="form-control"/>
+                        </div>
+                        <div class="form-group">
+                            <label for="operator">Boolean Operator</label>
+                            <select id="operator" name="operator" class="form-control">
+                                <option th:each="op : ${operators}" th:value="${op}" th:text="${op}"
+                                        th:selected="${searchRequest.operator == op}"></option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Skill criteria -->
+                    <div class="skills-criteria-section">
+                        <h4>Skill Criteria (weighted)</h4>
+                        <div id="criteria-container">
+                            <div th:each="sc, iter : ${searchRequest.skillCriteria}" class="criteria-row form-row">
+                                <div class="form-group">
+                                    <input type="text" name="skillNames" th:value="${sc.skillName}" class="form-control" placeholder="Skill name" list="skill-suggestions"/>
+                                </div>
+                                <div class="form-group">
+                                    <input type="number" name="skillMinYears" th:value="${sc.minYears}" class="form-control" placeholder="Min years" min="0"/>
+                                </div>
+                                <div class="form-group">
+                                    <input type="number" name="skillWeights" th:value="${sc.weight}" class="form-control" placeholder="Weight" min="0.1" step="0.1"/>
+                                </div>
+                                <div class="form-group">
+                                    <label class="inline-label">
+                                        <input type="hidden" th:name="'skillRequired'" value="false"/>
+                                        <input type="checkbox" th:name="'skillRequired'" value="true" th:checked="${sc.required}"/> Required
+                                    </label>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="this.closest('.criteria-row').remove()">X</button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="addCriterionRow()" style="margin-top:0.5rem">+ Add Skill Criterion</button>
+
+                        <datalist id="skill-suggestions">
+                            <option th:each="s : ${allSkills}" th:value="${s}"></option>
+                        </datalist>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Search &amp; Match</button>
+                    </div>
+                </form>
+
+                <!-- Save/Snapshot actions -->
+                <div class="panel save-actions" th:if="${results != null}" style="margin-top:1rem">
+                    <form th:action="@{/recruiter/search/save}" method="post" style="display:inline">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                        <input type="hidden" name="jobProfileId" th:value="${searchRequest.jobProfileId}"/>
+                        <input type="hidden" name="keyword" th:value="${searchRequest.keyword}"/>
+                        <input type="hidden" name="locationFilter" th:value="${searchRequest.locationFilter}"/>
+                        <input type="hidden" name="minYearsExperience" th:value="${searchRequest.minYearsExperience}"/>
+                        <input type="hidden" name="maxYearsExperience" th:value="${searchRequest.maxYearsExperience}"/>
+                        <input type="hidden" name="educationLevel" th:value="${searchRequest.educationLevel}"/>
+                        <input type="hidden" name="operator" th:value="${searchRequest.operator}"/>
+                        <th:block th:each="sc : ${searchRequest.skillCriteria}">
+                            <input type="hidden" name="skillNames" th:value="${sc.skillName}"/>
+                            <input type="hidden" name="skillMinYears" th:value="${sc.minYears}"/>
+                            <input type="hidden" name="skillWeights" th:value="${sc.weight}"/>
+                            <input type="hidden" name="skillRequired" th:value="${sc.required}"/>
+                        </th:block>
+                        <input type="text" name="searchName" placeholder="Search name" required class="form-control" style="width:200px;display:inline-block"/>
+                        <button type="submit" class="btn btn-sm btn-primary">Save Search</button>
+                    </form>
+
+                    <form th:action="@{/recruiter/search/snapshot}" method="post" style="display:inline;margin-left:1rem">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                        <input type="hidden" name="jobProfileId" th:value="${searchRequest.jobProfileId}"/>
+                        <input type="hidden" name="keyword" th:value="${searchRequest.keyword}"/>
+                        <input type="hidden" name="locationFilter" th:value="${searchRequest.locationFilter}"/>
+                        <input type="hidden" name="minYearsExperience" th:value="${searchRequest.minYearsExperience}"/>
+                        <input type="hidden" name="maxYearsExperience" th:value="${searchRequest.maxYearsExperience}"/>
+                        <input type="hidden" name="educationLevel" th:value="${searchRequest.educationLevel}"/>
+                        <input type="hidden" name="operator" th:value="${searchRequest.operator}"/>
+                        <th:block th:each="sc : ${searchRequest.skillCriteria}">
+                            <input type="hidden" name="skillNames" th:value="${sc.skillName}"/>
+                            <input type="hidden" name="skillMinYears" th:value="${sc.minYears}"/>
+                            <input type="hidden" name="skillWeights" th:value="${sc.weight}"/>
+                            <input type="hidden" name="skillRequired" th:value="${sc.required}"/>
+                        </th:block>
+                        <input type="text" name="snapshotName" placeholder="Snapshot name" required class="form-control" style="width:200px;display:inline-block"/>
+                        <button type="submit" class="btn btn-sm btn-secondary">Save Snapshot</button>
+                    </form>
+                </div>
+
+                <!-- Results -->
+                <div th:if="${results != null}" class="panel" style="margin-top:1rem">
+                    <h3 th:text="'Match Results (' + ${#lists.size(results)} + ' candidates)'">Results</h3>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Candidate</th>
+                                <th>Score</th>
+                                <th>Required Met</th>
+                                <th>Match Rationale</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="mr, iter : ${results}">
+                                <td th:text="${iter.count}"></td>
+                                <td>
+                                    <a th:href="@{/recruiter/candidates/{id}(id=${mr.candidate.id})}"
+                                       th:text="${mr.candidate.fullName}"></a>
+                                    <br/><small th:text="${mr.candidate.currentTitle}"></small>
+                                </td>
+                                <td>
+                                    <div class="score-bar">
+                                        <div class="score-fill" th:style="'width:' + ${mr.matchScorePercent} + '%'"
+                                             th:classappend="${mr.matchScorePercent >= 80} ? 'score-high' : (${mr.matchScorePercent >= 50} ? 'score-med' : 'score-low')">
+                                        </div>
+                                        <span class="score-text" th:text="${mr.matchScorePercent} + '%'"></span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span th:if="${mr.meetsAllRequired}" class="badge badge-open">Yes</span>
+                                    <span th:unless="${mr.meetsAllRequired}" class="badge badge-inactive">No</span>
+                                </td>
+                                <td class="rationale-cell">
+                                    <ul class="rationale-list">
+                                        <li th:each="r : ${mr.matchedRationale}" class="rationale-met" th:text="${r}"></li>
+                                        <li th:each="r : ${mr.unmatchedRationale}" class="rationale-unmet" th:text="${r}"></li>
+                                    </ul>
+                                </td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(results)}">
+                                <td colspan="5" class="empty-row">No matching candidates found</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer"><p>Workforce &amp; Talent Operations Hub &copy; 2026</p></footer>
+
+    <script>
+        function addCriterionRow() {
+            const container = document.getElementById('criteria-container');
+            const row = document.createElement('div');
+            row.className = 'criteria-row form-row';
+            row.innerHTML = `
+                <div class="form-group"><input type="text" name="skillNames" class="form-control" placeholder="Skill name" list="skill-suggestions"/></div>
+                <div class="form-group"><input type="number" name="skillMinYears" class="form-control" placeholder="Min years" min="0"/></div>
+                <div class="form-group"><input type="number" name="skillWeights" class="form-control" placeholder="Weight" min="0.1" step="0.1" value="1.0"/></div>
+                <div class="form-group"><label class="inline-label"><input type="hidden" name="skillRequired" value="false"/><input type="checkbox" name="skillRequired" value="true" checked/> Required</label></div>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="this.closest('.criteria-row').remove()">X</button>
+            `;
+            container.appendChild(row);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: workforce-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: workforce_db
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+  face-recognition:
+    build:
+      context: ./face-recognition-service
+      network: host
+    container_name: workforce-face
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "5001"
+      SIMILARITY_THRESHOLD: "0.75"
+    ports:
+      - "5001:5001"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5001/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      network: host
+    container_name: workforce-backend
+    environment:
+      SPRING_DATASOURCE_URL: "jdbc:mysql://db:3306/workforce_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      FACE_RECOGNITION_URL: "http://face-recognition:5001"
+      APP_ENCRYPTION_KEY: "dGhpcy1pcy1hLTMyLWJ5dGUta2V5ISEhMTIzNDU2Nzg="
+      APP_EXPORT_PATH: "/app/exports"
+      APP_IMPORT_PATH: "/app/imports"
+      APP_FILE_STORAGE_PATH: "/app/file-store"
+    ports:
+      - "8081:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+      face-recognition:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "sh", "-c", "curl -f http://localhost:8080/login || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+volumes:
+  mysql_data:

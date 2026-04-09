@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Import Detail - Workforce Hub</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand"><a href="/">Workforce &amp; Talent Operations Hub</a></div>
+        <div class="navbar-menu">
+            <span class="navbar-user">Logged in as: <strong sec:authentication="name">User</strong></span>
+            <div class="navbar-links">
+                <a th:href="@{/imports}">Back to Imports</a>
+            </div>
+            <form th:action="@{/logout}" method="post" class="logout-form">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit" class="btn btn-logout">Logout</button>
+            </form>
+        </div>
+    </nav>
+
+    <main class="container">
+        <h2 th:text="'Import: ' + ${job.originalFileName}">Import Detail</h2>
+
+        <div class="panel">
+            <dl class="detail-list">
+                <dt>File</dt><dd th:text="${job.originalFileName}"></dd>
+                <dt>Type</dt><dd th:text="${job.importType}"></dd>
+                <dt>SHA-256 Fingerprint</dt><dd><code th:text="${job.fileFingerprint}"></code></dd>
+                <dt>Status</dt>
+                <dd><span class="badge" th:text="${job.status.displayName}"
+                          th:classappend="${job.status.name() == 'COMPLETED'} ? 'badge-open' : (${job.status.name() == 'FAILED' or job.status.name() == 'DUPLICATE'} ? 'badge-high' : 'badge-warning')"></span></dd>
+                <dt>Total Rows</dt><dd th:text="${job.totalRows ?: '-'}"></dd>
+                <dt>Successful</dt><dd th:text="${job.successRows ?: '-'}"></dd>
+                <dt>Errors</dt><dd th:text="${job.errorRows ?: '-'}"></dd>
+                <dt>Created</dt><dd th:text="${#temporals.format(job.createdAt, 'yyyy-MM-dd HH:mm:ss')}"></dd>
+                <dt>Completed</dt><dd th:text="${job.completedAt != null} ? ${#temporals.format(job.completedAt, 'yyyy-MM-dd HH:mm:ss')} : 'In progress'"></dd>
+            </dl>
+        </div>
+
+        <div class="panel" style="margin-top:1.5rem" th:if="${job.errorReport != null}">
+            <h3>Row-Level Error Report</h3>
+            <pre class="error-report" th:text="${job.errorReport}"></pre>
+        </div>
+    </main>
+
+    <footer class="footer"><p>Workforce &amp; Talent Operations Hub &copy; 2026</p></footer>
+</body>
+</html>

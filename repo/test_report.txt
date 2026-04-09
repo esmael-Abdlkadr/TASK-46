@@ -1,0 +1,181 @@
+================================================================
+  WORKFORCE & TALENT OPERATIONS HUB - TEST REPORT
+  Generated: 2026-04-09 09:32:15
+================================================================
+
+Unit Test Report - 2026-04-09 09:32:16
+============================================================
+
+
+Test Classes:
+  PASS  com.eaglepoint.workforce.controller.api.RestApiSecurityTest (10 tests)
+  PASS  com.eaglepoint.workforce.controller.DispatchControllerTest (10 tests)
+  PASS  com.eaglepoint.workforce.controller.FaceRecognitionControllerTest (5 tests)
+  PASS  com.eaglepoint.workforce.controller.FinanceControllerTest (8 tests)
+  PASS  com.eaglepoint.workforce.controller.MetricsControllerTest (6 tests)
+  PASS  com.eaglepoint.workforce.controller.RecruitingControllerTest (10 tests)
+  PASS  com.eaglepoint.workforce.controller.SearchExportControllerTest (7 tests)
+  PASS  com.eaglepoint.workforce.crypto.BiometricAttributeConverterTest (3 tests)
+  PASS  com.eaglepoint.workforce.crypto.EncryptionKeyValidationTest (4 tests)
+  PASS  com.eaglepoint.workforce.masking.MaskingPolicyTest (7 tests)
+  PASS  com.eaglepoint.workforce.masking.MaskingUtilTest (7 tests)
+  PASS  com.eaglepoint.workforce.security.RateLimitFilterTest (1 tests)
+  PASS  com.eaglepoint.workforce.security.SecurityConfigTest (10 tests)
+  PASS  com.eaglepoint.workforce.service.AsyncJobServiceTest (7 tests)
+  PASS  com.eaglepoint.workforce.service.AuditServiceTest (3 tests)
+  PASS  com.eaglepoint.workforce.service.CollectorServiceTest (6 tests)
+  PASS  com.eaglepoint.workforce.service.DispatchServiceTest (10 tests)
+  PASS  com.eaglepoint.workforce.service.FileStorageServiceTest (5 tests)
+  PASS  com.eaglepoint.workforce.service.ImportHeaderValidationTest (3 tests)
+  PASS  com.eaglepoint.workforce.service.ImportServiceTest (4 tests)
+  PASS  com.eaglepoint.workforce.service.MasterDataServiceTest (7 tests)
+  PASS  com.eaglepoint.workforce.service.MatchingServiceTest (6 tests)
+  PASS  com.eaglepoint.workforce.service.MetricDefinitionServiceTest (15 tests)
+  PASS  com.eaglepoint.workforce.service.PaymentIdempotencyTest (4 tests)
+  PASS  com.eaglepoint.workforce.service.PaymentServiceTest (8 tests)
+  PASS  com.eaglepoint.workforce.service.PipelineServiceTest (5 tests)
+  PASS  com.eaglepoint.workforce.service.ReconciliationServiceTest (4 tests)
+  PASS  com.eaglepoint.workforce.service.ResourceAuthorizationTest (6 tests)
+  PASS  com.eaglepoint.workforce.service.SearchSnapshotServiceTest (3 tests)
+  PASS  com.eaglepoint.workforce.service.UnifiedSearchServiceTest (4 tests)
+  PASS  com.eaglepoint.workforce.WorkforceApplicationTests (1 tests)
+
+------------------------------------------------------------
+  Total:    378
+  Passed:   378
+  Failed:   0
+  Errors:   0
+  Skipped:  0
+------------------------------------------------------------
+
+=== ALL UNIT TESTS PASSED ===
+
+API Functional Test Report - 2026-04-09 09:38:04
+Base URL: http://localhost:8081
+============================================================
+
+--- 1. SERVICE HEALTH CHECKS ---
+  PASS  Backend login page accessible (HTTP 200)
+  PASS  Face recognition service UP
+  PASS  Feature vector size = 128
+  PASS  Login page renders HTML form
+
+--- 2. AUTHENTICATION & SESSION ---
+  PASS  Unauthenticated /admin/dashboard redirects (HTTP 302)
+  PASS  Admin login success -> /admin/dashboard (HTTP 200)
+  PASS  Invalid password returns 302 (to login?error) (HTTP 302)
+  PASS  POST without CSRF token rejected (403) (HTTP 403)
+
+--- 3. ROLE-BASED ACCESS CONTROL (RBAC) ---
+  PASS  ADMIN -> /admin/dashboard (HTTP 200)
+  PASS  ADMIN -> /admin/users (HTTP 200)
+  PASS  ADMIN -> /admin/audit (HTTP 200)
+  PASS  ADMIN -> /admin/metrics (HTTP 200)
+  PASS  ADMIN -> /admin/jobs (HTTP 200)
+  PASS  ADMIN -> /admin/face-recognition (HTTP 200)
+  PASS  ADMIN -> /finance/payments (cross-role) (HTTP 200)
+  PASS  ADMIN -> /finance/bank-files (cross-role) (HTTP 200)
+  PASS  ADMIN -> /finance/reconciliation (cross-role) (HTTP 200)
+  PASS  ADMIN -> /finance/settlement (cross-role) (HTTP 200)
+  PASS  RECRUITER -> /recruiter/dashboard (HTTP 200)
+  PASS  RECRUITER blocked from /admin/dashboard (403) (HTTP 403)
+  PASS  RECRUITER blocked from /finance/payments (403) (HTTP 403)
+  PASS  FINANCE -> /finance/payments (HTTP 200)
+  PASS  FINANCE blocked from /admin/dashboard (403) (HTTP 403)
+  PASS  FINANCE blocked from /recruiter/dashboard (403) (HTTP 403)
+  PASS  RECRUITER -> /search/unified (shared) (HTTP 200)
+  PASS  FINANCE -> /search/unified (shared) (HTTP 200)
+
+--- 4. METRICS SEMANTIC LAYER ---
+  PASS  Base metric created & visible
+  PASS  Derived metric created & visible
+  PASS  View metric detail (HTTP 200)
+  PASS  Draft version created (v1 visible)
+  PASS  Dimension created
+
+--- 5. PAYMENTS - CRUD & IDEMPOTENCY ---
+  PASS  Cash payment (PAY-API-001) in list
+  PASS  Check payment (PAY-API-002) in list
+  PASS  Card payment (PAY-API-003) in list
+  PASS  Payment detail shows reference
+  PASS  Payment detail shows idempotency key
+  PASS  Partial refund processed & visible
+  PASS  Refund reason in history
+
+--- 6. BANK FILE IMPORT & RECONCILIATION ---
+  PASS  Bank file imported & visible
+  PASS  Duplicate bank file rejected
+  PASS  Reconciliation ran (entries shown)
+  PASS  Exception queue page loads
+  PASS  Exception resolved
+
+--- 7. SETTLEMENT STATEMENT ---
+  PASS  Settlement page loads
+  PASS  Location populated from payments
+  PASS  Settlement CSV download (HTTP 200)
+  PASS  CSV contains header
+  PASS  CSV contains location
+
+--- 8. ASYNC JOB QUEUE & HEALTH ---
+  PASS  Job queue page loads
+  PASS  Queue health status shown
+  PASS  Max queued threshold shown
+
+--- 9. FACE RECOGNITION SERVICE API ---
+  PASS  Face service healthy
+  PASS  Feature extraction returns features
+  PASS  Feature extraction returns hash
+  PASS  Identical features match
+  PASS  Extract without image returns 400 (HTTP 400)
+  PASS  Match with wrong vector size returns 400 (HTTP 400)
+  PASS  Face recognition connected in UI
+
+--- 10. MASTER DATA CRUD ---
+  PASS  Department created
+  PASS  Departments page loads after dup attempt (HTTP 200)
+  PASS  Course created
+  PASS  Semester created
+
+--- 11. SEARCH & EXPORT/IMPORT ---
+  PASS  Unified search accessible (HTTP 200)
+  PASS  Export list accessible (HTTP 200)
+  PASS  Import list accessible (HTTP 200)
+
+--- 12. AUDIT TRAIL ---
+  PASS  Audit log page loads
+  PASS  Audit captured actions
+
+--- 13. REST API (/api/v1) ENDPOINTS ---
+  PASS  Session API returns username
+  PASS  REST payments list (HTTP 200)
+  PASS  REST payment created
+  PASS  Duplicate idempotency key returns same
+  PASS  REST search returns 200 (HTTP 200)
+  PASS  Validation error handled
+  PASS  Non-existent export returns error page
+  PASS  Unauthenticated REST redirects (HTTP 302)
+
+--- 14. ERROR HANDLING & EDGE CASES ---
+  PASS  Non-existent metric handled (HTTP 200)
+  PASS  Missing required fields handled
+  PASS  Negative amount handled
+  PASS  Static CSS accessible without auth (HTTP 200)
+  PASS  Logout returns redirect (HTTP 302)
+  PASS  After logout, requires login (302) (HTTP 302)
+
+============================================================
+  Total:    81
+  Passed:   81
+  Failed:   0
+============================================================
+=== ALL API TESTS PASSED ===
+
+================================================================
+  FINAL SUMMARY
+================================================================
+  Unit Tests:    378 total, 378 passed, 0 failed
+  API Tests:     81 total, 81 passed, 0 failed
+  GRAND TOTAL:   459 total, 459 passed, 0 failed
+================================================================
+
+  RESULT: ALL TESTS PASSED - SYSTEM ACCEPTANCE CRITERIA MET

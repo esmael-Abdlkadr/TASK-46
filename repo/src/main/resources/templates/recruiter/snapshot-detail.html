@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Search Snapshot - Workforce Hub</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand"><a href="/">Workforce &amp; Talent Operations Hub</a></div>
+        <div class="navbar-menu">
+            <span class="navbar-user">Logged in as: <strong sec:authentication="name">User</strong></span>
+            <div class="navbar-links">
+                <a th:href="@{/recruiter/search}">Back to Search</a>
+            </div>
+            <form th:action="@{/logout}" method="post" class="logout-form">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit" class="btn btn-logout">Logout</button>
+            </form>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="page-header">
+            <h2 th:text="'Snapshot: ' + ${snapshot.name}">Snapshot</h2>
+            <span class="badge" th:text="'Created: ' + ${#temporals.format(snapshot.createdAt, 'yyyy-MM-dd HH:mm')}"></span>
+        </div>
+
+        <div class="panel">
+            <p><strong>Note:</strong> This snapshot preserves match scores and rationale as computed at the time of the search.
+               Candidate profiles may have changed since then.</p>
+        </div>
+
+        <div class="panel" style="margin-top:1rem">
+            <h3 th:text="'Matched Candidates (' + ${#lists.size(snapshot.results)} + ')'">Results</h3>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Candidate</th>
+                        <th>Score</th>
+                        <th>Match Rationale (frozen)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="r, iter : ${snapshot.results}">
+                        <td th:text="${iter.count}"></td>
+                        <td>
+                            <a th:href="@{/recruiter/candidates/{id}(id=${r.candidateId})}"
+                               th:text="${r.candidateName}"></a>
+                        </td>
+                        <td>
+                            <div class="score-bar">
+                                <div class="score-fill"
+                                     th:style="'width:' + ${#numbers.formatDecimal(r.matchScore * 100, 0, 0)} + '%'"
+                                     th:classappend="${r.matchScore >= 0.8} ? 'score-high' : (${r.matchScore >= 0.5} ? 'score-med' : 'score-low')">
+                                </div>
+                                <span class="score-text" th:text="${#numbers.formatDecimal(r.matchScore * 100, 0, 0)} + '%'"></span>
+                            </div>
+                        </td>
+                        <td class="rationale-cell">
+                            <pre class="rationale-pre" th:text="${r.matchRationale}"></pre>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(snapshot.results)}">
+                        <td colspan="4" class="empty-row">No results in this snapshot</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <footer class="footer"><p>Workforce &amp; Talent Operations Hub &copy; 2026</p></footer>
+</body>
+</html>

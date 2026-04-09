@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Sites - Workforce Hub</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand"><a href="/">Workforce &amp; Talent Operations Hub</a></div>
+        <div class="navbar-menu">
+            <span class="navbar-user">Logged in as: <strong sec:authentication="name">User</strong></span>
+            <div class="navbar-links">
+                <a th:href="@{/dispatch/dashboard}">Dashboard</a>
+                <a th:href="@{/dispatch/collectors}">Collectors</a>
+                <a th:href="@{/dispatch/sites}" class="active">Sites</a>
+                <a th:href="@{/dispatch/assignments}">Dispatch</a>
+            </div>
+            <form th:action="@{/logout}" method="post" class="logout-form">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit" class="btn btn-logout">Logout</button>
+            </form>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="page-header">
+            <h2>Site Profiles</h2>
+            <a th:href="@{/dispatch/sites/new}" class="btn btn-primary">Add Site</a>
+        </div>
+
+        <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Zone</th>
+                    <th>Dispatch Mode</th>
+                    <th>Capacity</th>
+                    <th>Occupancy</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="s : ${sites}">
+                    <td><a th:href="@{/dispatch/sites/{id}(id=${s.id})}" th:text="${s.name}"></a></td>
+                    <td th:text="${s.zone ?: '-'}"></td>
+                    <td><span class="badge" th:text="${s.dispatchMode.displayName}"
+                              th:classappend="${s.dispatchMode.name() == 'GRAB_ORDER'} ? 'badge-info' : 'badge-update'"></span></td>
+                    <td th:text="${s.capacityLimit}"></td>
+                    <td>
+                        <span th:text="${s.currentOccupancy} + ' / ' + ${s.capacityLimit}"></span>
+                        <span th:if="${s.atCapacity}" class="badge badge-high">FULL</span>
+                    </td>
+                    <td>
+                        <span th:if="${s.active}" class="badge badge-open">Active</span>
+                        <span th:unless="${s.active}" class="badge badge-inactive">Inactive</span>
+                    </td>
+                    <td><a th:href="@{/dispatch/sites/{id}/edit(id=${s.id})}" class="btn btn-sm">Edit</a></td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(sites)}">
+                    <td colspan="7" class="empty-row">No sites found</td>
+                </tr>
+            </tbody>
+        </table>
+    </main>
+
+    <footer class="footer"><p>Workforce &amp; Talent Operations Hub &copy; 2026</p></footer>
+</body>
+</html>

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Metric Detail - Workforce Hub</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand"><a href="/">Workforce &amp; Talent Operations Hub</a></div>
+        <div class="navbar-menu">
+            <span class="navbar-user">Logged in as: <strong sec:authentication="name">User</strong></span>
+            <div class="navbar-links">
+                <a th:href="@{/admin/metrics}" class="active">Metrics</a>
+                <a th:href="@{/admin/metrics/dimensions}">Dimensions</a>
+            </div>
+            <form th:action="@{/logout}" method="post" class="logout-form">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit" class="btn btn-logout">Logout</button>
+            </form>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+        <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+
+        <div class="page-header">
+            <div>
+                <h2 th:text="${metric.name}">Metric</h2>
+                <code th:text="${metric.slug}" style="font-size:0.9rem;color:#666"></code>
+            </div>
+            <a th:href="@{/admin/metrics/{id}/edit(id=${metric.id})}" class="btn btn-primary">Edit Definition</a>
+        </div>
+
+        <!-- Definition panel -->
+        <div class="detail-grid">
+            <div class="panel">
+                <h3>Definition</h3>
+                <dl class="detail-list">
+                    <dt>Data Type</dt><dd><span class="badge badge-info" th:text="${metric.dataType}"></span></dd>
+                    <dt>Aggregation</dt><dd th:text="${metric.aggregationType}"></dd>
+                    <dt>Unit</dt><dd th:text="${metric.unit ?: '-'}"></dd>
+                    <dt>Source</dt><dd th:text="${metric.sourceTable != null ? metric.sourceTable + '.' + metric.sourceColumn : '-'}"></dd>
+                    <dt>Filter</dt><dd><code th:text="${metric.filterExpression ?: 'None'}"></code></dd>
+                    <dt>Derived</dt><dd th:text="${metric.derived ? 'Yes' : 'No'}"></dd>
+                    <dt th:if="${metric.derived}">Formula</dt>
+                    <dd th:if="${metric.derived}"><code th:text="${metric.formula}"></code></dd>
+                    <dt>Owner</dt><dd th:text="${metric.ownerUsername ?: '-'}"></dd>
+                    <dt>Current Version</dt>
+                    <dd th:text="${currentVersion != null ? 'v' + currentVersion.versionNumber + ' (published ' + #temporals.format(currentVersion.publishedAt, 'yyyy-MM-dd') + ' by ' + currentVersion.publishedBy + ')' : 'No published version'}"></dd>
+                </dl>
+            </div>
+
+            <!-- Version History -->
+            <div class="panel">
+                <h3>Version History</h3>
+                <form th:action="@{/admin/metrics/{id}/versions/draft(id=${metric.id})}" method="post" style="margin-bottom:1rem">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <input type="text" name="changeDescription" class="form-control" placeholder="Describe changes..." required/>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm">Create Draft Version</button>
+                    </div>
+                </form>
+
+                <table class="data-table" th:if="${!versions.isEmpty()}">
+                    <thead><tr><th>Version</th><th>Status</th><th>Published By</th><th>Published At</th><th>Change</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        <tr th:each="v : ${versions}">
+                            <td th:text="'v' + ${v.versionNumber}"></td>
+                            <td><span class="badge" th:text="${v.status}"
+                                      th:classappend="${v.status.name() == 'PUBLISHED'} ? 'badge-open' : (${v.status.name() == 'DRAFT'} ? 'badge-info' : (${v.status.name() == 'DEPRECATED'} ? 'badge-warning' : 'badge-inactive'))"></span></td>
+                            <td th:text="${v.publishedBy ?: '-'}"></td>
+                            <td th:text="${v.publishedAt != null ? #temporals.format(v.publishedAt, 'yyyy-MM-dd HH:mm') : '-'}"></td>
+                            <td th:text="${v.changeDescription ?: '-'}"></td>
+                            <td>
+                                <a th:href="@{/admin/metrics/versions/{vid}(vid=${v.id})}" class="btn btn-sm">Snapshot</a>
+                                <form th:if="${v.status.name() == 'DRAFT'}"
+                                      th:action="@{/admin/metrics/versions/{vid}/publish(vid=${v.id})}"
+                                      method="post" style="display:inline">
+                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                    <button type="submit" class="btn btn-sm btn-primary">Publish</button>
+                                </form>
+                                <form th:if="${v.status.name() != 'PUBLISHED'}"
+                                      th:action="@{/admin/metrics/{id}/versions/rollback(id=${metric.id})}"
+                                      method="post" style="display:inline">
+                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                    <input type="hidden" name="targetVersion" th:value="${v.versionNumber}"/>
+                                    <button type="submit" class="btn btn-sm btn-secondary"
+                                            onclick="return confirm('Rollback to version v${v.versionNumber}?')">Rollback</button>
+                                </form>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p th:if="${versions.isEmpty()}" class="empty-row">No versions yet</p>
+            </div>
+
+            <!-- Lineage: Sources -->
+            <div class="panel">
+                <h3>Lineage: Source Metrics (this metric depends on)</h3>
+                <table class="data-table" th:if="${!sources.isEmpty()}">
+                    <thead><tr><th>Source Metric</th><th>Relationship</th><th>Description</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        <tr th:each="l : ${sources}">
+                            <td><a th:href="@{/admin/metrics/{id}(id=${l.sourceMetric.id})}" th:text="${l.sourceMetric.name}"></a></td>
+                            <td><span class="badge badge-info" th:text="${l.relationshipType}"></span></td>
+                            <td th:text="${l.contributionDescription ?: '-'}"></td>
+                            <td>
+                                <form th:action="@{/admin/metrics/lineage/{lid}/remove(lid=${l.id})}" method="post" style="display:inline">
+                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                    <input type="hidden" name="metricId" th:value="${metric.id}"/>
+                                    <button type="submit" class="btn btn-sm btn-secondary">Remove</button>
+                                </form>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p th:if="${sources.isEmpty()}" class="empty-row">No source metrics</p>
+
+                <!-- Add lineage -->
+                <form th:action="@{/admin/metrics/{id}/lineage/add(id=${metric.id})}" method="post"
+                      style="margin-top:1rem; border-top:1px solid #eee; padding-top:1rem;">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                    <h4>Add Source Dependency</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <select name="sourceMetricId" class="form-control" required>
+                                <option value="">-- Select source metric --</option>
+                                <option th:each="m : ${allMetrics}" th:if="${m.id != metric.id}"
+                                        th:value="${m.id}" th:text="${m.name} + ' (' + ${m.slug} + ')'"></option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <select name="relationshipType" class="form-control" required>
+                                <option value="NUMERATOR">Numerator</option>
+                                <option value="DENOMINATOR">Denominator</option>
+                                <option value="ADDEND">Addend</option>
+                                <option value="FACTOR">Factor</option>
+                                <option value="INPUT">Input</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <input type="text" name="contributionDescription" class="form-control" placeholder="How it contributes"/>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm">Add</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Lineage: Dependents -->
+            <div class="panel">
+                <h3>Lineage: Dependent Metrics (affected if this changes)</h3>
+                <table class="data-table" th:if="${!dependents.isEmpty()}">
+                    <thead><tr><th>Dependent Metric</th><th>Relationship</th><th>Description</th></tr></thead>
+                    <tbody>
+                        <tr th:each="l : ${dependents}">
+                            <td><a th:href="@{/admin/metrics/{id}(id=${l.derivedMetric.id})}" th:text="${l.derivedMetric.name}"></a></td>
+                            <td><span class="badge badge-warning" th:text="${l.relationshipType}"></span></td>
+                            <td th:text="${l.contributionDescription ?: '-'}"></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p th:if="${dependents.isEmpty()}" class="empty-row">No downstream dependents</p>
+
+                <!-- Full downstream impact -->
+                <div th:if="${!downstreamImpact.isEmpty()}" style="margin-top:1rem; border-top:1px solid #eee; padding-top:1rem;">
+                    <h4>Full Downstream Impact (transitive)</h4>
+                    <ul>
+                        <li th:each="m : ${downstreamImpact}">
+                            <a th:href="@{/admin/metrics/{id}(id=${m.id})}" th:text="${m.name} + ' (' + ${m.slug} + ')'"></a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Window Calculations -->
+            <div class="panel">
+                <h3>Window Calculations</h3>
+                <table class="data-table" th:if="${!windowCalcs.isEmpty()}">
+                    <thead><tr><th>Window</th><th>Aggregation</th><th>Custom Days</th><th>Label</th></tr></thead>
+                    <tbody>
+                        <tr th:each="w : ${windowCalcs}">
+                            <td th:text="${w.windowType}"></td>
+                            <td th:text="${w.windowAggregation}"></td>
+                            <td th:text="${w.customWindowDays ?: '-'}"></td>
+                            <td th:text="${w.label ?: '-'}"></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p th:if="${windowCalcs.isEmpty()}" class="empty-row">No window calculations defined</p>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer"><p>Workforce &amp; Talent Operations Hub &copy; 2026</p></footer>
+</body>
+</html>

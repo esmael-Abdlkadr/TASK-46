@@ -1,0 +1,8 @@
+target/
+*.iml
+.idea/
+.git/
+*.md
+face-recognition-service/
+docker-compose.yml
+.dockerignore

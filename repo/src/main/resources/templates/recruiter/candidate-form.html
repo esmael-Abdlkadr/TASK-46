@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Candidate Form - Workforce Hub</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand"><a href="/">Workforce &amp; Talent Operations Hub</a></div>
+        <div class="navbar-menu">
+            <span class="navbar-user">Logged in as: <strong sec:authentication="name">User</strong></span>
+            <div class="navbar-links">
+                <a th:href="@{/recruiter/candidates}" class="active">Candidates</a>
+                <a th:href="@{/recruiter/search}">Intelligent Search</a>
+            </div>
+            <form th:action="@{/logout}" method="post" class="logout-form">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit" class="btn btn-logout">Logout</button>
+            </form>
+        </div>
+    </nav>
+
+    <main class="container">
+        <h2 th:text="${candidate.id != null} ? 'Edit Candidate' : 'New Candidate'">Candidate Form</h2>
+
+        <form th:action="${candidate.id != null} ? @{/recruiter/candidates/{id}/edit(id=${candidate.id})} : @{/recruiter/candidates/new}"
+              method="post" class="form" style="max-width:800px">
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="firstName">First Name *</label>
+                    <input type="text" id="firstName" name="firstName" th:value="${candidate.firstName}" class="form-control" required/>
+                </div>
+                <div class="form-group">
+                    <label for="lastName">Last Name *</label>
+                    <input type="text" id="lastName" name="lastName" th:value="${candidate.lastName}" class="form-control" required/>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" th:value="${candidate.email}" class="form-control"/>
+                </div>
+                <div class="form-group">
+                    <label for="phone">Phone</label>
+                    <input type="text" id="phone" name="phone" th:value="${candidate.phone}" class="form-control"/>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="location">Location</label>
+                    <input type="text" id="location" name="location" th:value="${candidate.location}" class="form-control"/>
+                </div>
+                <div class="form-group">
+                    <label for="yearsOfExperience">Years of Experience</label>
+                    <input type="number" id="yearsOfExperience" name="yearsOfExperience" th:value="${candidate.yearsOfExperience}" class="form-control" min="0"/>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="currentTitle">Current Title</label>
+                    <input type="text" id="currentTitle" name="currentTitle" th:value="${candidate.currentTitle}" class="form-control"/>
+                </div>
+                <div class="form-group">
+                    <label for="currentEmployer">Current Employer</label>
+                    <input type="text" id="currentEmployer" name="currentEmployer" th:value="${candidate.currentEmployer}" class="form-control"/>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="educationLevel">Education Level</label>
+                    <input type="text" id="educationLevel" name="educationLevel" th:value="${candidate.educationLevel}" class="form-control"/>
+                </div>
+                <div class="form-group">
+                    <label for="pipelineStage">Pipeline Stage</label>
+                    <select id="pipelineStage" name="pipelineStage" class="form-control">
+                        <option th:each="stage : ${stages}" th:value="${stage}" th:text="${stage.displayName}"
+                                th:selected="${candidate.pipelineStage == stage}"></option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="tags">Tags (comma-separated)</label>
+                <input type="text" id="tags" name="tags" th:value="${candidate.tags}" class="form-control"/>
+            </div>
+
+            <div class="form-group">
+                <label for="summary">Summary</label>
+                <textarea id="summary" name="summary" class="form-control" rows="3" th:text="${candidate.summary}"></textarea>
+            </div>
+
+            <!-- Skills section -->
+            <div class="panel" style="margin-top:1.5rem">
+                <h3>Skills</h3>
+                <div id="skills-container">
+                    <div th:each="skill, iter : ${candidate.skills}" class="skill-row form-row">
+                        <div class="form-group"><input type="text" name="skillNames" th:value="${skill.skillName}" class="form-control" placeholder="Skill name"/></div>
+                        <div class="form-group"><input type="number" name="skillYears" th:value="${skill.yearsExperience}" class="form-control" placeholder="Years" min="0"/></div>
+                        <div class="form-group">
+                            <select name="skillProficiencies" class="form-control">
+                                <option value="">Proficiency</option>
+                                <option th:each="p : ${proficiencies}" th:value="${p}" th:text="${p}"
+                                        th:selected="${skill.proficiency == p}"></option>
+                            </select>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="this.closest('.skill-row').remove()">Remove</button>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="addSkillRow()" style="margin-top:0.5rem">+ Add Skill</button>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary" th:text="${candidate.id != null} ? 'Update' : 'Create'">Save</button>
+                <a th:href="@{/recruiter/candidates}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </main>
+
+    <footer class="footer"><p>Workforce &amp; Talent Operations Hub &copy; 2026</p></footer>
+
+    <script>
+        function addSkillRow() {
+            const container = document.getElementById('skills-container');
+            const row = document.createElement('div');
+            row.className = 'skill-row form-row';
+            row.innerHTML = `
+                <div class="form-group"><input type="text" name="skillNames" class="form-control" placeholder="Skill name"/></div>
+                <div class="form-group"><input type="number" name="skillYears" class="form-control" placeholder="Years" min="0"/></div>
+                <div class="form-group">
+                    <select name="skillProficiencies" class="form-control">
+                        <option value="">Proficiency</option>
+                        <option value="BEGINNER">BEGINNER</option>
+                        <option value="INTERMEDIATE">INTERMEDIATE</option>
+                        <option value="ADVANCED">ADVANCED</option>
+                        <option value="EXPERT">EXPERT</option>
+                    </select>
+                </div>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="this.closest('.skill-row').remove()">Remove</button>
+            `;
+            container.appendChild(row);
+        }
+    </script>
+</body>
+</html>

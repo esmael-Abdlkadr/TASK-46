@@ -1,0 +1,25 @@
+.claude/
+repo/.claude/
+
+# Session / conversion artifacts
+3d945fb4-e5e5-4de2-8759-419bf767f0c6.jsonl
+convert_ai_session.py
+
+# Python dependency / cache artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+
+# Rust / build artifacts
+repo/target/
+
+# Environment files
+repo/.env
+repo/.env.*
+!repo/.env.example
+
+# Local logs
+*.log

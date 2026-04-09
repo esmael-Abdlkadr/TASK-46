@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Bank File Detail - Workforce Hub</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand"><a href="/">Workforce &amp; Talent Operations Hub</a></div>
+        <div class="navbar-menu">
+            <span class="navbar-user">Logged in as: <strong sec:authentication="name">User</strong></span>
+            <div class="navbar-links">
+                <a th:href="@{/finance/bank-files}">Bank Files</a>
+                <a th:href="@{/finance/reconciliation}">Reconciliation</a>
+            </div>
+            <form th:action="@{/logout}" method="post" class="logout-form">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit" class="btn btn-logout">Logout</button>
+            </form>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+
+        <div class="page-header">
+            <h2 th:text="'Bank File: ' + ${bankImport.fileName}">Bank File</h2>
+            <form th:action="@{/finance/bank-files/{id}/reconcile(id=${bankImport.id})}" method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit" class="btn btn-primary">Run Reconciliation</button>
+            </form>
+        </div>
+
+        <div class="panel" style="margin-bottom:1rem">
+            <dl class="detail-list">
+                <dt>SHA-256</dt><dd><code th:text="${bankImport.fileHash}"></code></dd>
+                <dt>Total Entries</dt><dd th:text="${bankImport.totalEntries}"></dd>
+                <dt>Imported By</dt><dd th:text="${bankImport.importedByUsername}"></dd>
+            </dl>
+        </div>
+
+        <table class="data-table">
+            <thead><tr><th>Bank Ref</th><th>Date</th><th>Amount</th><th>Description</th><th>Matched</th></tr></thead>
+            <tbody>
+                <tr th:each="e : ${entries}">
+                    <td th:text="${e.bankReference}"></td>
+                    <td th:text="${e.entryDate}"></td>
+                    <td th:text="'$' + ${#numbers.formatDecimal(e.amount, 1, 2)}"></td>
+                    <td th:text="${e.description}"></td>
+                    <td>
+                        <span th:if="${e.matched}" class="badge badge-open">Yes (Payment #<span th:text="${e.matchedPaymentId}"></span>)</span>
+                        <span th:unless="${e.matched}" class="badge badge-warning">No</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </main>
+    <footer class="footer"><p>Workforce &amp; Talent Operations Hub &copy; 2026</p></footer>
+</body>
+</html>

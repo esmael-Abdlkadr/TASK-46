@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Reconciliation - Workforce Hub</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand"><a href="/">Workforce &amp; Talent Operations Hub</a></div>
+        <div class="navbar-menu">
+            <span class="navbar-user">Logged in as: <strong sec:authentication="name">User</strong></span>
+            <div class="navbar-links">
+                <a th:href="@{/finance/dashboard}">Dashboard</a>
+                <a th:href="@{/finance/payments}">Payments</a>
+                <a th:href="@{/finance/bank-files}">Bank Files</a>
+                <a th:href="@{/finance/reconciliation}" class="active">Reconciliation</a>
+                <a th:href="@{/finance/settlement}">Settlement</a>
+            </div>
+            <form th:action="@{/logout}" method="post" class="logout-form">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit" class="btn btn-logout">Logout</button>
+            </form>
+        </div>
+    </nav>
+
+    <main class="container">
+        <h2>Reconciliation Exception Queue</h2>
+
+        <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+
+        <div class="metrics-grid" style="margin-bottom:1.5rem">
+            <div class="metric-card metric-card-alert">
+                <h3>Open Exceptions</h3>
+                <span class="metric-value" th:text="${openCount}">0</span>
+            </div>
+        </div>
+
+        <table class="data-table">
+            <thead>
+                <tr><th>ID</th><th>Type</th><th>Payment ID</th><th>Bank Entry ID</th><th>Payment Amt</th><th>Bank Amt</th><th>Discrepancy</th><th>Description</th><th>Status</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+                <tr th:each="e : ${exceptions}">
+                    <td th:text="${e.id}"></td>
+                    <td><span class="badge" th:text="${e.status.displayName}"
+                              th:classappend="${e.status.name() == 'RESOLVED'} ? 'badge-open' : (${e.status.name() == 'DISCREPANCY'} ? 'badge-high' : 'badge-warning')"></span></td>
+                    <td th:text="${e.paymentId ?: '-'}"></td>
+                    <td th:text="${e.bankEntryId ?: '-'}"></td>
+                    <td th:text="${e.paymentAmount != null ? '$' + #numbers.formatDecimal(e.paymentAmount, 1, 2) : '-'}"></td>
+                    <td th:text="${e.bankAmount != null ? '$' + #numbers.formatDecimal(e.bankAmount, 1, 2) : '-'}"></td>
+                    <td th:text="${e.discrepancyAmount != null ? '$' + #numbers.formatDecimal(e.discrepancyAmount, 1, 2) : '-'}"></td>
+                    <td th:text="${e.description}" style="max-width:250px"></td>
+                    <td>
+                        <span th:if="${e.status.name() == 'RESOLVED'}" class="badge badge-open"
+                              th:title="'Resolved by ' + ${e.resolvedBy} + ' - ' + ${e.resolutionNotes}">Resolved</span>
+                    </td>
+                    <td>
+                        <div th:if="${e.status.name() != 'RESOLVED'}">
+                            <form th:action="@{/finance/reconciliation/resolve/{id}(id=${e.id})}" method="post">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                <div class="form-row" style="margin-bottom:0">
+                                    <input type="text" name="resolutionNotes" class="form-control" placeholder="Resolution notes" required style="min-width:150px"/>
+                                    <button type="submit" class="btn btn-sm btn-primary">Resolve</button>
+                                </div>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(exceptions)}"><td colspan="10" class="empty-row">No reconciliation exceptions</td></tr>
+            </tbody>
+        </table>
+    </main>
+    <footer class="footer"><p>Workforce &amp; Talent Operations Hub &copy; 2026</p></footer>
+</body>
+</html>

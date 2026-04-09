@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Metrics Semantic Layer - Workforce Hub</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand"><a href="/">Workforce &amp; Talent Operations Hub</a></div>
+        <div class="navbar-menu">
+            <span class="navbar-user">Logged in as: <strong sec:authentication="name">User</strong></span>
+            <div class="navbar-links">
+                <a th:href="@{/admin/dashboard}">Dashboard</a>
+                <a th:href="@{/admin/metrics}" class="active">Metrics</a>
+                <a th:href="@{/admin/metrics/dimensions}">Dimensions</a>
+                <a th:href="@{/admin/users}">Users</a>
+                <a th:href="@{/admin/audit}">Audit</a>
+            </div>
+            <form th:action="@{/logout}" method="post" class="logout-form">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit" class="btn btn-logout">Logout</button>
+            </form>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="page-header">
+            <h2>Metrics Semantic Layer</h2>
+            <a th:href="@{/admin/metrics/new}" class="btn btn-primary">Define New Metric</a>
+        </div>
+
+        <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+
+        <div class="metrics-grid" style="margin-bottom:1.5rem">
+            <div class="metric-card">
+                <h3>Total Metrics</h3>
+                <span class="metric-value" th:text="${#lists.size(metrics)}">0</span>
+            </div>
+            <div class="metric-card">
+                <h3>Base Metrics</h3>
+                <span class="metric-value" th:text="${#lists.size(baseMetrics)}">0</span>
+            </div>
+            <div class="metric-card">
+                <h3>Derived Metrics</h3>
+                <span class="metric-value" th:text="${#lists.size(derivedMetrics)}">0</span>
+            </div>
+        </div>
+
+        <!-- Base Metrics -->
+        <div class="panel" style="margin-bottom:1.5rem">
+            <h3>Base Metrics</h3>
+            <table class="data-table">
+                <thead><tr><th>Slug</th><th>Name</th><th>Data Type</th><th>Aggregation</th><th>Source</th><th>Active</th><th>Actions</th></tr></thead>
+                <tbody>
+                    <tr th:each="m : ${baseMetrics}">
+                        <td><code th:text="${m.slug}"></code></td>
+                        <td><a th:href="@{/admin/metrics/{id}(id=${m.id})}" th:text="${m.name}"></a></td>
+                        <td><span class="badge badge-info" th:text="${m.dataType}"></span></td>
+                        <td th:text="${m.aggregationType}"></td>
+                        <td th:text="${m.sourceTable != null ? m.sourceTable + '.' + m.sourceColumn : '-'}"></td>
+                        <td><span th:if="${m.active}" class="badge badge-open">Yes</span>
+                            <span th:unless="${m.active}" class="badge badge-inactive">No</span></td>
+                        <td><a th:href="@{/admin/metrics/{id}(id=${m.id})}" class="btn btn-sm">View</a></td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(baseMetrics)}"><td colspan="7" class="empty-row">No base metrics defined</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Derived Metrics -->
+        <div class="panel">
+            <h3>Derived Metrics</h3>
+            <table class="data-table">
+                <thead><tr><th>Slug</th><th>Name</th><th>Formula</th><th>Data Type</th><th>Active</th><th>Actions</th></tr></thead>
+                <tbody>
+                    <tr th:each="m : ${derivedMetrics}">
+                        <td><code th:text="${m.slug}"></code></td>
+                        <td><a th:href="@{/admin/metrics/{id}(id=${m.id})}" th:text="${m.name}"></a></td>
+                        <td><code th:text="${m.formula ?: '-'}"></code></td>
+                        <td><span class="badge badge-info" th:text="${m.dataType}"></span></td>
+                        <td><span th:if="${m.active}" class="badge badge-open">Yes</span></td>
+                        <td><a th:href="@{/admin/metrics/{id}(id=${m.id})}" class="btn btn-sm">View</a></td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(derivedMetrics)}"><td colspan="6" class="empty-row">No derived metrics</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <footer class="footer"><p>Workforce &amp; Talent Operations Hub &copy; 2026</p></footer>
+</body>
+</html>

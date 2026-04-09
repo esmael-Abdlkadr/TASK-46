@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Job Profiles - Workforce Hub</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand"><a href="/">Workforce &amp; Talent Operations Hub</a></div>
+        <div class="navbar-menu">
+            <span class="navbar-user">Logged in as: <strong sec:authentication="name">User</strong></span>
+            <div class="navbar-links">
+                <a th:href="@{/recruiter/dashboard}">Dashboard</a>
+                <a th:href="@{/recruiter/candidates}">Candidates</a>
+                <a th:href="@{/recruiter/job-profiles}" class="active">Job Profiles</a>
+                <a th:href="@{/recruiter/search}">Intelligent Search</a>
+                <a th:href="@{/recruiter/pipeline}">Pipeline</a>
+                <a th:href="@{/recruiter/talent-pools}">Talent Pools</a>
+            </div>
+            <form th:action="@{/logout}" method="post" class="logout-form">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit" class="btn btn-logout">Logout</button>
+            </form>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="page-header">
+            <h2>Job Profiles</h2>
+            <a th:href="@{/recruiter/job-profiles/new}" class="btn btn-primary">Create Job Profile</a>
+        </div>
+
+        <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Department</th>
+                    <th>Location</th>
+                    <th>Min Experience</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="jp : ${jobProfiles}">
+                    <td><a th:href="@{/recruiter/job-profiles/{id}(id=${jp.id})}" th:text="${jp.title}"></a></td>
+                    <td th:text="${jp.department ?: '-'}"></td>
+                    <td th:text="${jp.location ?: '-'}"></td>
+                    <td th:text="${jp.minYearsExperience != null} ? ${jp.minYearsExperience} + ' yrs' : '-'"></td>
+                    <td>
+                        <span th:if="${jp.active}" class="badge badge-open">Active</span>
+                        <span th:unless="${jp.active}" class="badge badge-inactive">Inactive</span>
+                    </td>
+                    <td>
+                        <a th:href="@{/recruiter/job-profiles/{id}/edit(id=${jp.id})}" class="btn btn-sm">Edit</a>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(jobProfiles)}">
+                    <td colspan="6" class="empty-row">No job profiles created yet</td>
+                </tr>
+            </tbody>
+        </table>
+    </main>
+
+    <footer class="footer"><p>Workforce &amp; Talent Operations Hub &copy; 2026</p></footer>
+</body>
+</html>

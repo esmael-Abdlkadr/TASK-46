@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Collector Form - Workforce Hub</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand"><a href="/">Workforce &amp; Talent Operations Hub</a></div>
+        <div class="navbar-menu">
+            <span class="navbar-user">Logged in as: <strong sec:authentication="name">User</strong></span>
+            <div class="navbar-links">
+                <a th:href="@{/dispatch/collectors}" class="active">Collectors</a>
+            </div>
+            <form th:action="@{/logout}" method="post" class="logout-form">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit" class="btn btn-logout">Logout</button>
+            </form>
+        </div>
+    </nav>
+
+    <main class="container">
+        <h2 th:text="${collector.id != null} ? 'Edit Collector' : 'New Collector'">Collector Form</h2>
+
+        <form th:action="${collector.id != null} ? @{/dispatch/collectors/{id}/edit(id=${collector.id})} : @{/dispatch/collectors/new}"
+              method="post" class="form" style="max-width:700px">
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="firstName">First Name *</label>
+                    <input type="text" id="firstName" name="firstName" th:value="${collector.firstName}" class="form-control" required/>
+                </div>
+                <div class="form-group">
+                    <label for="lastName">Last Name *</label>
+                    <input type="text" id="lastName" name="lastName" th:value="${collector.lastName}" class="form-control" required/>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="employeeId">Employee ID</label>
+                    <input type="text" id="employeeId" name="employeeId" th:value="${collector.employeeId}" class="form-control"/>
+                </div>
+                <div class="form-group">
+                    <label for="phone">Phone</label>
+                    <input type="text" id="phone" name="phone" th:value="${collector.phone}" class="form-control"/>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" th:value="${collector.email}" class="form-control"/>
+                </div>
+                <div class="form-group">
+                    <label for="zone">Zone</label>
+                    <input type="text" id="zone" name="zone" th:value="${collector.zone}" class="form-control"/>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="status">Status</label>
+                    <select id="status" name="status" class="form-control">
+                        <option th:each="s : ${statuses}" th:value="${s}" th:text="${s.displayName}"
+                                th:selected="${collector.status == s}"></option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="maxConcurrentJobs">Max Concurrent Jobs</label>
+                    <input type="number" id="maxConcurrentJobs" name="maxConcurrentJobs"
+                           th:value="${collector.maxConcurrentJobs ?: 1}" class="form-control" min="1" max="10"/>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="skills">Skills (comma-separated)</label>
+                <input type="text" id="skills" name="skills" th:value="${collector.skills}" class="form-control"
+                       placeholder="e.g. Driving, Heavy Equipment, Hazmat"/>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary" th:text="${collector.id != null} ? 'Update' : 'Create'">Save</button>
+                <a th:href="@{/dispatch/collectors}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </main>
+
+    <footer class="footer"><p>Workforce &amp; Talent Operations Hub &copy; 2026</p></footer>
+</body>
+</html>

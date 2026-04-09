@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Version Snapshot - Workforce Hub</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand"><a href="/">Workforce &amp; Talent Operations Hub</a></div>
+        <div class="navbar-menu">
+            <span class="navbar-user">Logged in as: <strong sec:authentication="name">User</strong></span>
+            <div class="navbar-links"><a th:href="@{/admin/metrics}">Metrics</a></div>
+            <form th:action="@{/logout}" method="post" class="logout-form">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit" class="btn btn-logout">Logout</button>
+            </form>
+        </div>
+    </nav>
+
+    <main class="container">
+        <h2 th:text="'Version v' + ${version.versionNumber} + ' Snapshot'">Version Snapshot</h2>
+
+        <div class="panel">
+            <dl class="detail-list">
+                <dt>Version</dt><dd th:text="'v' + ${version.versionNumber}"></dd>
+                <dt>Status</dt>
+                <dd><span class="badge" th:text="${version.status}"
+                          th:classappend="${version.status.name() == 'PUBLISHED'} ? 'badge-open' : 'badge-info'"></span></dd>
+                <dt>Published By</dt><dd th:text="${version.publishedBy ?: 'Not published'}"></dd>
+                <dt>Published At</dt>
+                <dd th:text="${version.publishedAt != null ? #temporals.format(version.publishedAt, 'yyyy-MM-dd HH:mm:ss') : '-'}"></dd>
+                <dt>Created</dt><dd th:text="${#temporals.format(version.createdAt, 'yyyy-MM-dd HH:mm:ss')}"></dd>
+                <dt>Change Description</dt><dd th:text="${version.changeDescription ?: '-'}"></dd>
+            </dl>
+        </div>
+
+        <div class="panel" style="margin-top:1.5rem">
+            <h3>Frozen Definition Snapshot</h3>
+            <pre class="error-report" th:text="${version.definitionSnapshot}"></pre>
+        </div>
+
+        <div class="form-actions" style="margin-top:1rem">
+            <a th:href="@{/admin/metrics/{id}(id=${version.metricDefinition.id})}" class="btn btn-secondary">Back to Metric</a>
+        </div>
+    </main>
+
+    <footer class="footer"><p>Workforce &amp; Talent Operations Hub &copy; 2026</p></footer>
+</body>
+</html>

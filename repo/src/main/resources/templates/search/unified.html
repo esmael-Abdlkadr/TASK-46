@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Unified Search - Workforce Hub</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand"><a href="/">Workforce &amp; Talent Operations Hub</a></div>
+        <div class="navbar-menu">
+            <span class="navbar-user">Logged in as: <strong sec:authentication="name">User</strong></span>
+            <div class="navbar-links">
+                <a th:href="@{/search}" class="active">Search</a>
+                <a th:href="@{/exports}">Exports</a>
+                <a th:href="@{/imports}">Imports</a>
+                <a th:href="@{/masterdata/departments}" sec:authorize="hasRole('ADMINISTRATOR')">Master Data</a>
+            </div>
+            <form th:action="@{/logout}" method="post" class="logout-form">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit" class="btn btn-logout">Logout</button>
+            </form>
+        </div>
+    </nav>
+
+    <main class="container">
+        <h2>Unified Search</h2>
+
+        <form th:action="@{/search}" method="post" class="panel">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+            <div class="form-row">
+                <div class="form-group" style="flex:2">
+                    <label for="keyword">Keyword</label>
+                    <input type="text" id="keyword" name="keyword" th:value="${searchRequest.keyword}"
+                           class="form-control" placeholder="Search across all entities..." autofocus/>
+                </div>
+                <div class="form-group">
+                    <label for="locationFilter">Location / Zone</label>
+                    <input type="text" id="locationFilter" name="locationFilter"
+                           th:value="${searchRequest.locationFilter}" class="form-control"/>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="statusFilter">Status</label>
+                    <input type="text" id="statusFilter" name="statusFilter"
+                           th:value="${searchRequest.statusFilter}" class="form-control" placeholder="e.g. OPEN, AVAILABLE"/>
+                </div>
+                <div class="form-group">
+                    <label for="departmentFilter">Department</label>
+                    <input type="text" id="departmentFilter" name="departmentFilter"
+                           th:value="${searchRequest.departmentFilter}" class="form-control"/>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Search In</label>
+                <div class="checkbox-group">
+                    <label th:each="d : ${domains}">
+                        <input type="checkbox" name="domains" th:value="${d}"
+                               th:checked="${searchRequest.domains != null and searchRequest.domains.contains(d)}"/>
+                        <span th:text="${d.displayName}"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Search</button>
+                <a th:href="@{/search}" class="btn btn-secondary">Clear</a>
+            </div>
+        </form>
+
+        <!-- Results -->
+        <div th:if="${results != null}" class="panel" style="margin-top:1.5rem">
+            <h3 th:text="'Results (' + ${resultCount} + ')'">Results</h3>
+
+            <table class="data-table" th:if="${!results.isEmpty()}">
+                <thead>
+                    <tr><th>Domain</th><th>Title</th><th>Detail</th><th>Status</th><th>Actions</th></tr>
+                </thead>
+                <tbody>
+                    <tr th:each="r : ${results}">
+                        <td><span class="badge badge-info" th:text="${r.domain.displayName}"></span></td>
+                        <td th:text="${r.title}"></td>
+                        <td th:text="${r.subtitle}"></td>
+                        <td><span class="badge" th:text="${r.status}"></span></td>
+                        <td><a th:href="${r.detailUrl}" class="btn btn-sm" th:if="${r.detailUrl != '#'}">View</a></td>
+                    </tr>
+                </tbody>
+            </table>
+            <p th:if="${results.isEmpty()}" class="empty-row">No results found</p>
+        </div>
+    </main>
+
+    <footer class="footer"><p>Workforce &amp; Talent Operations Hub &copy; 2026</p></footer>
+</body>
+</html>

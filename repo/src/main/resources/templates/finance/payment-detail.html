@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Payment Detail - Workforce Hub</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand"><a href="/">Workforce &amp; Talent Operations Hub</a></div>
+        <div class="navbar-menu">
+            <span class="navbar-user">Logged in as: <strong sec:authentication="name">User</strong></span>
+            <div class="navbar-links">
+                <a th:href="@{/finance/payments}" class="active">Payments</a>
+                <a th:href="@{/finance/reconciliation}">Reconciliation</a>
+            </div>
+            <form th:action="@{/logout}" method="post" class="logout-form">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit" class="btn btn-logout">Logout</button>
+            </form>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+        <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+
+        <h2 th:text="'Payment: ' + ${payment.referenceNumber}">Payment Detail</h2>
+
+        <div class="detail-grid">
+            <div class="panel">
+                <h3>Transaction Details</h3>
+                <dl class="detail-list">
+                    <dt>Reference</dt><dd th:text="${payment.referenceNumber}"></dd>
+                    <dt>Amount</dt><dd th:text="'$' + ${#numbers.formatDecimal(payment.amount, 1, 2)}"></dd>
+                    <dt>Refunded</dt><dd th:text="'$' + ${#numbers.formatDecimal(payment.refundedAmount, 1, 2)}"></dd>
+                    <dt>Net</dt><dd><strong th:text="'$' + ${#numbers.formatDecimal(payment.netAmount, 1, 2)}"></strong></dd>
+                    <dt>Channel</dt><dd><span class="badge badge-info" th:text="${payment.channel.displayName}"></span></dd>
+                    <dt>Status</dt><dd><span class="badge" th:text="${payment.status.displayName}"></span></dd>
+                    <dt>Payer</dt><dd th:text="${payment.payerName ?: '-'}"></dd>
+                    <dt>Location</dt><dd th:text="${payment.location ?: '-'}"></dd>
+                    <dt>Check #</dt><dd th:text="${payment.checkNumber ?: '-'}"></dd>
+                    <dt>Card Last 4</dt><dd th:text="${payment.cardLastFour != null ? '****' + payment.cardLastFour : '-'}"></dd>
+                    <dt>Date</dt><dd th:text="${#temporals.format(payment.transactionDate, 'yyyy-MM-dd HH:mm:ss')}"></dd>
+                    <dt>Recorded By</dt><dd th:text="${payment.recordedByUsername}"></dd>
+                    <dt>Idempotency Key</dt><dd><code style="font-size:0.75rem" th:text="${payment.idempotencyKey}"></code></dd>
+                </dl>
+            </div>
+
+            <!-- Refund form -->
+            <div class="panel" th:if="${payment.status.name() != 'REFUNDED' and payment.status.name() != 'VOIDED'}">
+                <h3>Process Refund</h3>
+                <form th:action="@{/finance/payments/{id}/refund(id=${payment.id})}" method="post">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Refund Amount (max: $<span th:text="${#numbers.formatDecimal(payment.netAmount, 1, 2)}"></span>)</label>
+                            <input type="number" name="refundAmount" class="form-control" required step="0.01" min="0.01"
+                                   th:max="${payment.netAmount}"/>
+                        </div>
+                        <div class="form-group">
+                            <label>Reason *</label>
+                            <input type="text" name="reason" class="form-control" required/>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm"
+                                onclick="return confirm('Process this refund?')">Process Refund</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Refund history -->
+            <div class="panel">
+                <h3>Refund History</h3>
+                <table class="data-table" th:if="${!refunds.isEmpty()}">
+                    <thead><tr><th>Date</th><th>Amount</th><th>Reason</th><th>Processed By</th></tr></thead>
+                    <tbody>
+                        <tr th:each="r : ${refunds}">
+                            <td th:text="${#temporals.format(r.createdAt, 'yyyy-MM-dd HH:mm')}"></td>
+                            <td th:text="'$' + ${#numbers.formatDecimal(r.amount, 1, 2)}"></td>
+                            <td th:text="${r.reason}"></td>
+                            <td th:text="${r.processedByUsername}"></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p th:if="${refunds.isEmpty()}" class="empty-row">No refunds</p>
+            </div>
+        </div>
+    </main>
+    <footer class="footer"><p>Workforce &amp; Talent Operations Hub &copy; 2026</p></footer>
+</body>
+</html>

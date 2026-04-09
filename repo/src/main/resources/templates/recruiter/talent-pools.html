@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Talent Pools - Workforce Hub</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand"><a href="/">Workforce &amp; Talent Operations Hub</a></div>
+        <div class="navbar-menu">
+            <span class="navbar-user">Logged in as: <strong sec:authentication="name">User</strong></span>
+            <div class="navbar-links">
+                <a th:href="@{/recruiter/dashboard}">Dashboard</a>
+                <a th:href="@{/recruiter/candidates}">Candidates</a>
+                <a th:href="@{/recruiter/search}">Intelligent Search</a>
+                <a th:href="@{/recruiter/talent-pools}" class="active">Talent Pools</a>
+            </div>
+            <form th:action="@{/logout}" method="post" class="logout-form">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit" class="btn btn-logout">Logout</button>
+            </form>
+        </div>
+    </nav>
+
+    <main class="container">
+        <h2>Talent Pools</h2>
+
+        <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+
+        <!-- Create pool form -->
+        <div class="panel" style="margin-bottom:1.5rem">
+            <h3>Create New Pool</h3>
+            <form th:action="@{/recruiter/talent-pools/new}" method="post" class="form-row">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <div class="form-group">
+                    <input type="text" name="name" placeholder="Pool name" required class="form-control"/>
+                </div>
+                <div class="form-group">
+                    <input type="text" name="description" placeholder="Description (optional)" class="form-control"/>
+                </div>
+                <button type="submit" class="btn btn-primary">Create</button>
+            </form>
+        </div>
+
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Candidates</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="pool : ${pools}">
+                    <td><a th:href="@{/recruiter/talent-pools/{id}(id=${pool.id})}" th:text="${pool.name}"></a></td>
+                    <td th:text="${pool.description ?: '-'}"></td>
+                    <td th:text="${pool.candidates.size()}"></td>
+                    <td th:text="${#temporals.format(pool.createdAt, 'yyyy-MM-dd')}"></td>
+                    <td>
+                        <a th:href="@{/recruiter/talent-pools/{id}(id=${pool.id})}" class="btn btn-sm">View</a>
+                        <form th:action="@{/recruiter/talent-pools/{id}/delete(id=${pool.id})}" method="post" style="display:inline">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                            <button type="submit" class="btn btn-sm btn-secondary" onclick="return confirm('Delete this pool?')">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(pools)}">
+                    <td colspan="5" class="empty-row">No talent pools created yet</td>
+                </tr>
+            </tbody>
+        </table>
+    </main>
+
+    <footer class="footer"><p>Workforce &amp; Talent Operations Hub &copy; 2026</p></footer>
+</body>
+</html>

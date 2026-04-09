@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Site Form - Workforce Hub</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand"><a href="/">Workforce &amp; Talent Operations Hub</a></div>
+        <div class="navbar-menu">
+            <span class="navbar-user">Logged in as: <strong sec:authentication="name">User</strong></span>
+            <div class="navbar-links">
+                <a th:href="@{/dispatch/sites}" class="active">Sites</a>
+            </div>
+            <form th:action="@{/logout}" method="post" class="logout-form">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit" class="btn btn-logout">Logout</button>
+            </form>
+        </div>
+    </nav>
+
+    <main class="container">
+        <h2 th:text="${site.id != null} ? 'Edit Site' : 'New Site'">Site Form</h2>
+
+        <form th:action="${site.id != null} ? @{/dispatch/sites/{id}/edit(id=${site.id})} : @{/dispatch/sites/new}"
+              method="post" class="form" style="max-width:700px">
+
+            <div class="form-group">
+                <label for="name">Site Name *</label>
+                <input type="text" id="name" name="name" th:value="${site.name}" class="form-control" required/>
+            </div>
+
+            <div class="form-group">
+                <label for="address">Address</label>
+                <input type="text" id="address" name="address" th:value="${site.address}" class="form-control"/>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="zone">Zone</label>
+                    <input type="text" id="zone" name="zone" th:value="${site.zone}" class="form-control"/>
+                </div>
+                <div class="form-group">
+                    <label for="capacityLimit">Capacity Limit *</label>
+                    <input type="number" id="capacityLimit" name="capacityLimit"
+                           th:value="${site.capacityLimit ?: 10}" class="form-control" min="1" required/>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="dispatchMode">Dispatch Mode *</label>
+                    <select id="dispatchMode" name="dispatchMode" class="form-control" required>
+                        <option th:each="dm : ${dispatchModes}" th:value="${dm}" th:text="${dm.displayName}"
+                                th:selected="${site.dispatchMode == dm}"></option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" name="active" th:checked="${site.active}"/> Active
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="contactName">Contact Name</label>
+                    <input type="text" id="contactName" name="contactName" th:value="${site.contactName}" class="form-control"/>
+                </div>
+                <div class="form-group">
+                    <label for="contactPhone">Contact Phone</label>
+                    <input type="text" id="contactPhone" name="contactPhone" th:value="${site.contactPhone}" class="form-control"/>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="notes">Notes</label>
+                <textarea id="notes" name="notes" class="form-control" rows="3" th:text="${site.notes}"></textarea>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary" th:text="${site.id != null} ? 'Update' : 'Create'">Save</button>
+                <a th:href="@{/dispatch/sites}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </main>
+
+    <footer class="footer"><p>Workforce &amp; Talent Operations Hub &copy; 2026</p></footer>
+</body>
+</html>

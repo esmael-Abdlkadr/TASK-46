@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Payments - Workforce Hub</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand"><a href="/">Workforce &amp; Talent Operations Hub</a></div>
+        <div class="navbar-menu">
+            <span class="navbar-user">Logged in as: <strong sec:authentication="name">User</strong></span>
+            <div class="navbar-links">
+                <a th:href="@{/finance/dashboard}">Dashboard</a>
+                <a th:href="@{/finance/payments}" class="active">Payments</a>
+                <a th:href="@{/finance/bank-files}">Bank Files</a>
+                <a th:href="@{/finance/reconciliation}">Reconciliation</a>
+                <a th:href="@{/finance/settlement}">Settlement</a>
+            </div>
+            <form th:action="@{/logout}" method="post" class="logout-form">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit" class="btn btn-logout">Logout</button>
+            </form>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="page-header">
+            <h2>Payment Transactions</h2>
+            <a th:href="@{/finance/payments/new}" class="btn btn-primary">Record Payment</a>
+        </div>
+
+        <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+        <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+
+        <table class="data-table">
+            <thead>
+                <tr><th>Ref #</th><th>Date</th><th>Channel</th><th>Payer</th><th>Amount</th><th>Refunded</th><th>Net</th><th>Status</th><th>Location</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+                <tr th:each="p : ${payments}">
+                    <td><a th:href="@{/finance/payments/{id}(id=${p.id})}" th:text="${p.referenceNumber}"></a></td>
+                    <td th:text="${#temporals.format(p.transactionDate, 'yyyy-MM-dd HH:mm')}"></td>
+                    <td><span class="badge badge-info" th:text="${p.channel.displayName}"></span></td>
+                    <td th:text="${p.payerName ?: '-'}"></td>
+                    <td th:text="'$' + ${#numbers.formatDecimal(p.amount, 1, 2)}"></td>
+                    <td th:text="'$' + ${#numbers.formatDecimal(p.refundedAmount, 1, 2)}"></td>
+                    <td th:text="'$' + ${#numbers.formatDecimal(p.netAmount, 1, 2)}"></td>
+                    <td><span class="badge" th:text="${p.status.displayName}"
+                              th:classappend="${p.status.name() == 'RECORDED'} ? 'badge-open' : (${p.status.name() == 'RECONCILED'} ? 'badge-info' : (${p.status.name() == 'REFUNDED'} ? 'badge-high' : 'badge-warning'))"></span></td>
+                    <td th:text="${p.location ?: '-'}"></td>
+                    <td><a th:href="@{/finance/payments/{id}(id=${p.id})}" class="btn btn-sm">View</a></td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(payments)}"><td colspan="10" class="empty-row">No payments recorded</td></tr>
+            </tbody>
+        </table>
+    </main>
+    <footer class="footer"><p>Workforce &amp; Talent Operations Hub &copy; 2026</p></footer>
+</body>
+</html>

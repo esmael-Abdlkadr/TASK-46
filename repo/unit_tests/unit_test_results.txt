@@ -1,0 +1,46 @@
+Unit Test Report - 2026-04-09 09:32:16
+============================================================
+
+
+Test Classes:
+  PASS  com.eaglepoint.workforce.controller.api.RestApiSecurityTest (10 tests)
+  PASS  com.eaglepoint.workforce.controller.DispatchControllerTest (10 tests)
+  PASS  com.eaglepoint.workforce.controller.FaceRecognitionControllerTest (5 tests)
+  PASS  com.eaglepoint.workforce.controller.FinanceControllerTest (8 tests)
+  PASS  com.eaglepoint.workforce.controller.MetricsControllerTest (6 tests)
+  PASS  com.eaglepoint.workforce.controller.RecruitingControllerTest (10 tests)
+  PASS  com.eaglepoint.workforce.controller.SearchExportControllerTest (7 tests)
+  PASS  com.eaglepoint.workforce.crypto.BiometricAttributeConverterTest (3 tests)
+  PASS  com.eaglepoint.workforce.crypto.EncryptionKeyValidationTest (4 tests)
+  PASS  com.eaglepoint.workforce.masking.MaskingPolicyTest (7 tests)
+  PASS  com.eaglepoint.workforce.masking.MaskingUtilTest (7 tests)
+  PASS  com.eaglepoint.workforce.security.RateLimitFilterTest (1 tests)
+  PASS  com.eaglepoint.workforce.security.SecurityConfigTest (10 tests)
+  PASS  com.eaglepoint.workforce.service.AsyncJobServiceTest (7 tests)
+  PASS  com.eaglepoint.workforce.service.AuditServiceTest (3 tests)
+  PASS  com.eaglepoint.workforce.service.CollectorServiceTest (6 tests)
+  PASS  com.eaglepoint.workforce.service.DispatchServiceTest (10 tests)
+  PASS  com.eaglepoint.workforce.service.FileStorageServiceTest (5 tests)
+  PASS  com.eaglepoint.workforce.service.ImportHeaderValidationTest (3 tests)
+  PASS  com.eaglepoint.workforce.service.ImportServiceTest (4 tests)
+  PASS  com.eaglepoint.workforce.service.MasterDataServiceTest (7 tests)
+  PASS  com.eaglepoint.workforce.service.MatchingServiceTest (6 tests)
+  PASS  com.eaglepoint.workforce.service.MetricDefinitionServiceTest (15 tests)
+  PASS  com.eaglepoint.workforce.service.PaymentIdempotencyTest (4 tests)
+  PASS  com.eaglepoint.workforce.service.PaymentServiceTest (8 tests)
+  PASS  com.eaglepoint.workforce.service.PipelineServiceTest (5 tests)
+  PASS  com.eaglepoint.workforce.service.ReconciliationServiceTest (4 tests)
+  PASS  com.eaglepoint.workforce.service.ResourceAuthorizationTest (6 tests)
+  PASS  com.eaglepoint.workforce.service.SearchSnapshotServiceTest (3 tests)
+  PASS  com.eaglepoint.workforce.service.UnifiedSearchServiceTest (4 tests)
+  PASS  com.eaglepoint.workforce.WorkforceApplicationTests (1 tests)
+
+------------------------------------------------------------
+  Total:    378
+  Passed:   378
+  Failed:   0
+  Errors:   0
+  Skipped:  0
+------------------------------------------------------------
+
+=== ALL UNIT TESTS PASSED ===

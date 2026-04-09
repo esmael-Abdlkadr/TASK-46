@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Dimensions - Workforce Hub</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand"><a href="/">Workforce &amp; Talent Operations Hub</a></div>
+        <div class="navbar-menu">
+            <span class="navbar-user">Logged in as: <strong sec:authentication="name">User</strong></span>
+            <div class="navbar-links">
+                <a th:href="@{/admin/dashboard}">Dashboard</a>
+                <a th:href="@{/admin/metrics}">Metrics</a>
+                <a th:href="@{/admin/metrics/dimensions}" class="active">Dimensions</a>
+            </div>
+            <form th:action="@{/logout}" method="post" class="logout-form">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit" class="btn btn-logout">Logout</button>
+            </form>
+        </div>
+    </nav>
+
+    <main class="container">
+        <h2>Dimension Definitions</h2>
+        <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+
+        <div class="panel" style="margin-bottom:1.5rem">
+            <h3>Add Dimension</h3>
+            <form th:action="@{/admin/metrics/dimensions/save}" method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <div class="form-row">
+                    <div class="form-group"><input type="text" name="slug" class="form-control" placeholder="Slug *" required pattern="[a-z0-9_-]+"/></div>
+                    <div class="form-group"><input type="text" name="name" class="form-control" placeholder="Name *" required/></div>
+                    <div class="form-group"><input type="text" name="sourceTable" class="form-control" placeholder="Source Table"/></div>
+                    <div class="form-group"><input type="text" name="sourceColumn" class="form-control" placeholder="Source Column"/></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><input type="text" name="description" class="form-control" placeholder="Description"/></div>
+                    <div class="form-group"><input type="text" name="hierarchyLevel" class="form-control" placeholder="Hierarchy Level"/></div>
+                    <button type="submit" class="btn btn-primary btn-sm">Save</button>
+                </div>
+            </form>
+        </div>
+
+        <table class="data-table">
+            <thead><tr><th>Slug</th><th>Name</th><th>Source</th><th>Hierarchy</th><th>Active</th></tr></thead>
+            <tbody>
+                <tr th:each="d : ${dimensions}">
+                    <td><code th:text="${d.slug}"></code></td>
+                    <td th:text="${d.name}"></td>
+                    <td th:text="${d.sourceTable != null ? d.sourceTable + '.' + d.sourceColumn : '-'}"></td>
+                    <td th:text="${d.hierarchyLevel ?: '-'}"></td>
+                    <td><span th:if="${d.active}" class="badge badge-open">Yes</span></td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(dimensions)}"><td colspan="5" class="empty-row">No dimensions defined</td></tr>
+            </tbody>
+        </table>
+    </main>
+
+    <footer class="footer"><p>Workforce &amp; Talent Operations Hub &copy; 2026</p></footer>
+</body>
+</html>

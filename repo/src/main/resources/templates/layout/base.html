@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:fragment="layout(title, content)">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title}">Workforce Hub</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <a href="/">Workforce &amp; Talent Operations Hub</a>
+        </div>
+        <div class="navbar-menu" sec:authorize="isAuthenticated()">
+            <span class="navbar-user">
+                Logged in as: <strong sec:authentication="name">User</strong>
+            </span>
+            <div class="navbar-links">
+                <a th:href="@{/admin/dashboard}" sec:authorize="hasRole('ADMINISTRATOR')">Admin Dashboard</a>
+                <a th:href="@{/recruiter/dashboard}" sec:authorize="hasRole('RECRUITER')">Recruiter Dashboard</a>
+                <a th:href="@{/dispatch/dashboard}" sec:authorize="hasRole('DISPATCH_SUPERVISOR')">Dispatch Dashboard</a>
+                <a th:href="@{/finance/dashboard}" sec:authorize="hasRole('FINANCE_CLERK')">Finance Dashboard</a>
+                <a th:href="@{/admin/users}" sec:authorize="hasRole('ADMINISTRATOR')">Manage Users</a>
+                <a th:href="@{/admin/audit}" sec:authorize="hasRole('ADMINISTRATOR')">Audit Log</a>
+            </div>
+            <form th:action="@{/logout}" method="post" class="logout-form">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit" class="btn btn-logout">Logout</button>
+            </form>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+        <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+        <div th:replace="${content}">Content goes here</div>
+    </main>
+
+    <footer class="footer">
+        <p>Workforce &amp; Talent Operations Hub &copy; 2026 - Offline System</p>
+    </footer>
+
+    <script th:src="@{/js/app.js}"></script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+    <div th:fragment="alertsPanel(alerts)" class="panel">
+        <h3>Exception Alerts</h3>
+        <table class="data-table">
+            <thead>
+                <tr><th>Severity</th><th>Type</th><th>Message</th><th>Created</th></tr>
+            </thead>
+            <tbody>
+                <tr th:each="alert : ${alerts}">
+                    <td><span class="badge" th:text="${alert.severity}"
+                              th:classappend="'badge-' + ${alert.severity.toLowerCase()}"></span></td>
+                    <td th:text="${alert.type}"></td>
+                    <td th:text="${alert.message}"></td>
+                    <td th:text="${#temporals.format(alert.createdAt, 'yyyy-MM-dd HH:mm')}"></td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(alerts)}">
+                    <td colspan="4" class="empty-row">No active alerts</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

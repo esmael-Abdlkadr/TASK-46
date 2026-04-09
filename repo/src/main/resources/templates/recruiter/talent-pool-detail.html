@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Talent Pool Detail - Workforce Hub</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand"><a href="/">Workforce &amp; Talent Operations Hub</a></div>
+        <div class="navbar-menu">
+            <span class="navbar-user">Logged in as: <strong sec:authentication="name">User</strong></span>
+            <div class="navbar-links">
+                <a th:href="@{/recruiter/talent-pools}">Back to Pools</a>
+            </div>
+            <form th:action="@{/logout}" method="post" class="logout-form">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit" class="btn btn-logout">Logout</button>
+            </form>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="page-header">
+            <div>
+                <h2 th:text="${pool.name}">Pool Name</h2>
+                <p th:text="${pool.description}" th:if="${pool.description}"></p>
+            </div>
+        </div>
+
+        <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+
+        <!-- Current members -->
+        <div class="panel">
+            <h3 th:text="'Pool Members (' + ${pool.candidates.size()} + ')'">Members</h3>
+            <form th:action="@{/recruiter/talent-pools/{id}/remove-candidates(id=${pool.id})}" method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="select-all-members"/></th>
+                            <th>Name</th>
+                            <th>Title</th>
+                            <th>Location</th>
+                            <th>Stage</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="c : ${pool.candidates}">
+                            <td><input type="checkbox" name="candidateIds" th:value="${c.id}" class="member-cb"/></td>
+                            <td><a th:href="@{/recruiter/candidates/{id}(id=${c.id})}" th:text="${c.fullName}"></a></td>
+                            <td th:text="${c.currentTitle ?: '-'}"></td>
+                            <td th:text="${c.location ?: '-'}"></td>
+                            <td><span class="badge" th:text="${c.pipelineStage.displayName}"></span></td>
+                        </tr>
+                        <tr th:if="${pool.candidates.isEmpty()}">
+                            <td colspan="5" class="empty-row">No candidates in this pool</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <button type="submit" class="btn btn-sm btn-secondary" style="margin-top:0.5rem"
+                        th:if="${!pool.candidates.isEmpty()}"
+                        onclick="return confirm('Remove selected candidates from pool?')">Remove Selected</button>
+            </form>
+        </div>
+
+        <!-- Add candidates -->
+        <div class="panel" style="margin-top:1.5rem">
+            <h3>Add Candidates</h3>
+            <form th:action="@{/recruiter/talent-pools/{id}/add-candidates(id=${pool.id})}" method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <select name="candidateIds" multiple class="form-control" size="8">
+                    <option th:each="c : ${allCandidates}" th:value="${c.id}"
+                            th:text="${c.fullName} + ' - ' + ${c.currentTitle ?: 'N/A'}"></option>
+                </select>
+                <button type="submit" class="btn btn-primary btn-sm" style="margin-top:0.5rem">Add Selected to Pool</button>
+            </form>
+        </div>
+    </main>
+
+    <footer class="footer"><p>Workforce &amp; Talent Operations Hub &copy; 2026</p></footer>
+
+    <script>
+        document.getElementById('select-all-members')?.addEventListener('change', function() {
+            document.querySelectorAll('.member-cb').forEach(cb => cb.checked = this.checked);
+        });
+    </script>
+</body>
+</html>

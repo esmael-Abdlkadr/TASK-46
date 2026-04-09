@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Dispatch Assignments - Workforce Hub</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand"><a href="/">Workforce &amp; Talent Operations Hub</a></div>
+        <div class="navbar-menu">
+            <span class="navbar-user">Logged in as: <strong sec:authentication="name">User</strong></span>
+            <div class="navbar-links">
+                <a th:href="@{/dispatch/dashboard}">Dashboard</a>
+                <a th:href="@{/dispatch/collectors}">Collectors</a>
+                <a th:href="@{/dispatch/sites}">Sites</a>
+                <a th:href="@{/dispatch/assignments}" class="active">Dispatch</a>
+            </div>
+            <form th:action="@{/logout}" method="post" class="logout-form">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit" class="btn btn-logout">Logout</button>
+            </form>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="page-header">
+            <h2>Dispatch Assignments</h2>
+            <a th:href="@{/dispatch/assignments/new}" class="btn btn-primary">Create Assignment</a>
+        </div>
+
+        <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+        <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+
+        <!-- Status summary -->
+        <div class="metrics-grid" style="margin-bottom:1.5rem">
+            <div class="metric-card">
+                <h3>Pending</h3>
+                <span class="metric-value" th:text="${pendingCount}">0</span>
+            </div>
+            <div class="metric-card">
+                <h3>Offered</h3>
+                <span class="metric-value" th:text="${offeredCount}">0</span>
+            </div>
+            <div class="metric-card">
+                <h3>Accepted</h3>
+                <span class="metric-value" th:text="${acceptedCount}">0</span>
+            </div>
+        </div>
+
+        <!-- Status filter -->
+        <div class="filter-form">
+            <div class="stage-pills">
+                <a th:href="@{/dispatch/assignments}" class="pill"
+                   th:classappend="${selectedStatus == null} ? 'pill-active' : ''">All</a>
+                <a th:each="s : ${statuses}"
+                   th:href="@{/dispatch/assignments(status=${s})}"
+                   th:text="${s.displayName}" class="pill"
+                   th:classappend="${selectedStatus == s} ? 'pill-active' : ''"></a>
+            </div>
+        </div>
+
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Site</th>
+                    <th>Mode</th>
+                    <th>Collector</th>
+                    <th>Status</th>
+                    <th>Timeout</th>
+                    <th>Offers</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="a : ${assignments}">
+                    <td th:text="${a.id}"></td>
+                    <td><a th:href="@{/dispatch/assignments/{id}(id=${a.id})}" th:text="${a.title}"></a></td>
+                    <td th:text="${a.site.name}"></td>
+                    <td><span class="badge" th:text="${a.dispatchMode.displayName}"
+                              th:classappend="${a.dispatchMode.name() == 'GRAB_ORDER'} ? 'badge-info' : 'badge-update'"></span></td>
+                    <td th:text="${a.collector != null} ? ${a.collector.fullName} : '-'"></td>
+                    <td><span class="badge" th:text="${a.status.displayName}"
+                              th:classappend="'badge-dispatch-' + ${a.status.name().toLowerCase()}"></span></td>
+                    <td>
+                        <span th:if="${a.status.name() == 'OFFERED' and !a.acceptanceExpired}"
+                              class="countdown-timer" th:data-seconds="${a.acceptanceRemainingSeconds}"></span>
+                        <span th:if="${a.status.name() == 'OFFERED' and a.acceptanceExpired}"
+                              class="badge badge-high">Expired</span>
+                    </td>
+                    <td th:text="${a.offerCount}"></td>
+                    <td><a th:href="@{/dispatch/assignments/{id}(id=${a.id})}" class="btn btn-sm">View</a></td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(assignments)}">
+                    <td colspan="9" class="empty-row">No assignments found</td>
+                </tr>
+            </tbody>
+        </table>
+    </main>
+
+    <footer class="footer"><p>Workforce &amp; Talent Operations Hub &copy; 2026</p></footer>
+
+    <script>
+        // Countdown timers for acceptance windows
+        document.querySelectorAll('.countdown-timer').forEach(function(el) {
+            var seconds = parseInt(el.dataset.seconds);
+            function tick() {
+                if (seconds <= 0) {
+                    el.textContent = 'Expired';
+                    el.className = 'badge badge-high';
+                    return;
+                }
+                el.textContent = seconds + 's';
+                seconds--;
+                setTimeout(tick, 1000);
+            }
+            tick();
+        });
+    </script>
+</body>
+</html>

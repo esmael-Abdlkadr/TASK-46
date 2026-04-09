@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Settlement Statements - Workforce Hub</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand"><a href="/">Workforce &amp; Talent Operations Hub</a></div>
+        <div class="navbar-menu">
+            <span class="navbar-user">Logged in as: <strong sec:authentication="name">User</strong></span>
+            <div class="navbar-links">
+                <a th:href="@{/finance/dashboard}">Dashboard</a>
+                <a th:href="@{/finance/payments}">Payments</a>
+                <a th:href="@{/finance/bank-files}">Bank Files</a>
+                <a th:href="@{/finance/reconciliation}">Reconciliation</a>
+                <a th:href="@{/finance/settlement}" class="active">Settlement</a>
+            </div>
+            <form th:action="@{/logout}" method="post" class="logout-form">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit" class="btn btn-logout">Logout</button>
+            </form>
+        </div>
+    </nav>
+
+    <main class="container">
+        <h2>Monthly Settlement Statements</h2>
+
+        <div class="panel">
+            <h3>Generate Statement</h3>
+            <form th:action="@{/finance/settlement/download}" method="get" class="form-row">
+                <div class="form-group">
+                    <label>Location *</label>
+                    <select name="location" class="form-control" required>
+                        <option value="">-- Select --</option>
+                        <option th:each="loc : ${locations}" th:value="${loc}" th:text="${loc}"></option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Month *</label>
+                    <input type="month" name="yearMonth" class="form-control" required/>
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">Download CSV</button>
+                </div>
+            </form>
+            <small class="field-hint">Generates a CSV settlement statement with all transactions, refunds, and net totals for the selected location and month.</small>
+        </div>
+    </main>
+    <footer class="footer"><p>Workforce &amp; Talent Operations Hub &copy; 2026</p></footer>
+</body>
+</html>

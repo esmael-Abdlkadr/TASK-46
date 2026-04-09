@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Dispatch Dashboard - Workforce Hub</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand"><a href="/">Workforce &amp; Talent Operations Hub</a></div>
+        <div class="navbar-menu">
+            <span class="navbar-user">Logged in as: <strong sec:authentication="name">User</strong></span>
+            <div class="navbar-links">
+                <a th:href="@{/dispatch/dashboard}" class="active">Dashboard</a>
+                <a th:href="@{/dispatch/collectors}">Collectors</a>
+                <a th:href="@{/dispatch/sites}">Sites</a>
+                <a th:href="@{/dispatch/assignments}">Dispatch</a>
+            </div>
+            <form th:action="@{/logout}" method="post" class="logout-form">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit" class="btn btn-logout">Logout</button>
+            </form>
+        </div>
+    </nav>
+
+    <main class="container">
+        <h2>Dispatch Supervisor Dashboard</h2>
+
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <h3>Unassigned Jobs</h3>
+                <span class="metric-value" th:text="${dashboard.unassignedJobs}">0</span>
+            </div>
+            <div class="metric-card metric-card-alert">
+                <h3>Active Alerts</h3>
+                <span class="metric-value" th:text="${dashboard.activeAlerts}">0</span>
+            </div>
+        </div>
+
+        <div class="dashboard-panels">
+            <div class="panel">
+                <h3>Unassigned Jobs</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr><th>ID</th><th>Title</th><th>Location</th><th>Scheduled</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="job : ${dashboard.recentUnassignedJobs}">
+                            <td th:text="${job.id}"></td>
+                            <td th:text="${job.title}"></td>
+                            <td th:text="${job.location}"></td>
+                            <td th:text="${job.scheduledDate}"></td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(dashboard.recentUnassignedJobs)}">
+                            <td colspan="4" class="empty-row">No unassigned jobs</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="panel" th:replace="~{fragments/alerts-panel :: alertsPanel(${dashboard.recentAlerts})}"></div>
+        </div>
+    </main>
+
+    <footer class="footer"><p>Workforce &amp; Talent Operations Hub &copy; 2026</p></footer>
+</body>
+</html>
