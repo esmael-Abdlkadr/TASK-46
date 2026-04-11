@@ -21,7 +21,7 @@ spring:
 
 app:
   encryption:
-    key: ${APP_ENCRYPTION_KEY:dGhpcy1pcy1hLTMyLWJ5dGUta2V5ISEhMTIzNDU2Nzg=}
+    key: ${APP_ENCRYPTION_KEY}
   rate-limit:
     requests-per-minute: 30
   export:

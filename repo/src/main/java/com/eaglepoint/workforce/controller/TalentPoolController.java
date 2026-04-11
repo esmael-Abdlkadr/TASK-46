@@ -5,9 +5,11 @@ import com.eaglepoint.workforce.entity.TalentPool;
 import com.eaglepoint.workforce.entity.User;
 import com.eaglepoint.workforce.enums.AuditAction;
 import com.eaglepoint.workforce.service.CandidateService;
+import com.eaglepoint.workforce.service.ResourceAuthorizationService;
 import com.eaglepoint.workforce.service.TalentPoolService;
 import com.eaglepoint.workforce.service.UserService;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
@@ -25,20 +27,24 @@ public class TalentPoolController {
     private final TalentPoolService talentPoolService;
     private final CandidateService candidateService;
     private final UserService userService;
+    private final ResourceAuthorizationService authzService;
 
     public TalentPoolController(TalentPoolService talentPoolService,
                                  CandidateService candidateService,
-                                 UserService userService) {
+                                 UserService userService,
+                                 ResourceAuthorizationService authzService) {
         this.talentPoolService = talentPoolService;
         this.candidateService = candidateService;
         this.userService = userService;
+        this.authzService = authzService;
     }
 
     @GetMapping
     @Audited(action = AuditAction.READ, resource = "TalentPoolList")
-    public String list(Model model, @AuthenticationPrincipal UserDetails userDetails) {
+    public String list(Model model, @AuthenticationPrincipal UserDetails userDetails, Authentication auth) {
         Long userId = getUserId(userDetails);
-        model.addAttribute("pools", talentPoolService.findByCreator(userId));
+        model.addAttribute("pools", authzService.isAdmin(auth)
+                ? talentPoolService.findAll() : talentPoolService.findByCreator(userId));
         return "recruiter/talent-pools";
     }
 
@@ -56,9 +62,8 @@ public class TalentPoolController {
 
     @GetMapping("/{id}")
     @Audited(action = AuditAction.READ, resource = "TalentPoolDetail")
-    public String view(@PathVariable Long id, Model model) {
-        TalentPool pool = talentPoolService.findByIdWithCandidates(id)
-                .orElseThrow(() -> new RuntimeException("Talent pool not found"));
+    public String view(@PathVariable Long id, Model model, Authentication auth) {
+        TalentPool pool = authzService.authorizeTalentPool(id, auth);
         model.addAttribute("pool", pool);
         model.addAttribute("allCandidates", candidateService.findAll());
         return "recruiter/talent-pool-detail";
@@ -68,7 +73,9 @@ public class TalentPoolController {
     @Audited(action = AuditAction.UPDATE, resource = "TalentPool")
     public String addCandidates(@PathVariable Long id,
                                 @RequestParam List<Long> candidateIds,
+                                Authentication auth,
                                 RedirectAttributes redirectAttrs) {
+        authzService.authorizeTalentPool(id, auth);
         talentPoolService.addCandidates(id, candidateIds);
         redirectAttrs.addFlashAttribute("success", "Added " + candidateIds.size() + " candidates to pool");
         return "redirect:/recruiter/talent-pools/" + id;
@@ -78,7 +85,9 @@ public class TalentPoolController {
     @Audited(action = AuditAction.UPDATE, resource = "TalentPool")
     public String removeCandidates(@PathVariable Long id,
                                    @RequestParam List<Long> candidateIds,
+                                   Authentication auth,
                                    RedirectAttributes redirectAttrs) {
+        authzService.authorizeTalentPool(id, auth);
         talentPoolService.removeCandidates(id, candidateIds);
         redirectAttrs.addFlashAttribute("success", "Removed " + candidateIds.size() + " candidates from pool");
         return "redirect:/recruiter/talent-pools/" + id;
@@ -86,7 +95,8 @@ public class TalentPoolController {
 
     @PostMapping("/{id}/delete")
     @Audited(action = AuditAction.DELETE, resource = "TalentPool")
-    public String delete(@PathVariable Long id, RedirectAttributes redirectAttrs) {
+    public String delete(@PathVariable Long id, Authentication auth, RedirectAttributes redirectAttrs) {
+        authzService.authorizeTalentPool(id, auth);
         talentPoolService.delete(id);
         redirectAttrs.addFlashAttribute("success", "Talent pool deleted");
         return "redirect:/recruiter/talent-pools";

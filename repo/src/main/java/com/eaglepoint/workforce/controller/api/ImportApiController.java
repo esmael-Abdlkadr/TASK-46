@@ -9,6 +9,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/imports")
 public class ImportApiController {
@@ -19,6 +21,15 @@ public class ImportApiController {
     public ImportApiController(ImportService importService, ResourceAuthorizationService authzService) {
         this.importService = importService;
         this.authzService = authzService;
+    }
+
+    @GetMapping
+    @Audited(action = AuditAction.READ, resource = "API:ImportList")
+    public ResponseEntity<List<ImportJob>> list(Authentication auth) {
+        Long userId = authzService.resolveUserId(auth);
+        List<ImportJob> jobs = authzService.isAdmin(auth)
+                ? importService.findAll() : importService.findByUser(userId);
+        return ResponseEntity.ok(jobs);
     }
 
     @GetMapping("/{id}")

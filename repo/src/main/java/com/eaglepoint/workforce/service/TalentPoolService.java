@@ -2,6 +2,7 @@ package com.eaglepoint.workforce.service;
 
 import com.eaglepoint.workforce.entity.CandidateProfile;
 import com.eaglepoint.workforce.entity.TalentPool;
+import com.eaglepoint.workforce.exception.ResourceNotFoundException;
 import com.eaglepoint.workforce.repository.CandidateProfileRepository;
 import com.eaglepoint.workforce.repository.TalentPoolRepository;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,11 @@ public class TalentPoolService {
                              CandidateProfileRepository candidateRepository) {
         this.poolRepository = poolRepository;
         this.candidateRepository = candidateRepository;
+    }
+
+    @Transactional(readOnly = true)
+    public List<TalentPool> findAll() {
+        return poolRepository.findAll();
     }
 
     @Transactional(readOnly = true)
@@ -45,7 +51,7 @@ public class TalentPoolService {
     @Transactional
     public TalentPool addCandidates(Long poolId, List<Long> candidateIds) {
         TalentPool pool = poolRepository.findByIdWithCandidates(poolId)
-                .orElseThrow(() -> new RuntimeException("Talent pool not found: " + poolId));
+                .orElseThrow(() -> new ResourceNotFoundException("Talent pool not found: " + poolId));
         List<CandidateProfile> candidates = candidateRepository.findAllById(candidateIds);
         pool.getCandidates().addAll(candidates);
         return poolRepository.save(pool);
@@ -54,7 +60,7 @@ public class TalentPoolService {
     @Transactional
     public TalentPool removeCandidates(Long poolId, List<Long> candidateIds) {
         TalentPool pool = poolRepository.findByIdWithCandidates(poolId)
-                .orElseThrow(() -> new RuntimeException("Talent pool not found: " + poolId));
+                .orElseThrow(() -> new ResourceNotFoundException("Talent pool not found: " + poolId));
         Set<CandidateProfile> toRemove = new java.util.HashSet<>(candidateRepository.findAllById(candidateIds));
         pool.getCandidates().removeAll(toRemove);
         return poolRepository.save(pool);

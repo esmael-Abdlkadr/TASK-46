@@ -1,10 +1,12 @@
 package com.eaglepoint.workforce.exception;
 
+import org.springframework.core.annotation.Order;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 @ControllerAdvice
+@Order(100)
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(AccessDeniedException.class)

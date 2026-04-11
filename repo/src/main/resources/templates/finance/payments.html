@@ -42,13 +42,12 @@
                 <tr th:each="p : ${payments}">
                     <td><a th:href="@{/finance/payments/{id}(id=${p.id})}" th:text="${p.referenceNumber}"></a></td>
                     <td th:text="${#temporals.format(p.transactionDate, 'yyyy-MM-dd HH:mm')}"></td>
-                    <td><span class="badge badge-info" th:text="${p.channel.displayName}"></span></td>
+                    <td><span class="badge badge-info" th:text="${p.channel}"></span></td>
                     <td th:text="${p.payerName ?: '-'}"></td>
                     <td th:text="'$' + ${#numbers.formatDecimal(p.amount, 1, 2)}"></td>
                     <td th:text="'$' + ${#numbers.formatDecimal(p.refundedAmount, 1, 2)}"></td>
                     <td th:text="'$' + ${#numbers.formatDecimal(p.netAmount, 1, 2)}"></td>
-                    <td><span class="badge" th:text="${p.status.displayName}"
-                              th:classappend="${p.status.name() == 'RECORDED'} ? 'badge-open' : (${p.status.name() == 'RECONCILED'} ? 'badge-info' : (${p.status.name() == 'REFUNDED'} ? 'badge-high' : 'badge-warning'))"></span></td>
+                    <td><span class="badge" th:text="${p.status}"></span></td>
                     <td th:text="${p.location ?: '-'}"></td>
                     <td><a th:href="@{/finance/payments/{id}(id=${p.id})}" class="btn btn-sm">View</a></td>
                 </tr>

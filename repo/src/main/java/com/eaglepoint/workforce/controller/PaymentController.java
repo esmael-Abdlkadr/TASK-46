@@ -1,13 +1,16 @@
 package com.eaglepoint.workforce.controller;
 
 import com.eaglepoint.workforce.audit.Audited;
+import com.eaglepoint.workforce.dto.PaymentView;
 import com.eaglepoint.workforce.entity.PaymentTransaction;
 import com.eaglepoint.workforce.entity.User;
 import com.eaglepoint.workforce.enums.AuditAction;
 import com.eaglepoint.workforce.enums.PaymentChannel;
 import com.eaglepoint.workforce.service.PaymentService;
+import com.eaglepoint.workforce.service.ResourceAuthorizationService;
 import com.eaglepoint.workforce.service.UserService;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
@@ -24,16 +27,21 @@ public class PaymentController {
 
     private final PaymentService paymentService;
     private final UserService userService;
+    private final ResourceAuthorizationService authzService;
 
-    public PaymentController(PaymentService paymentService, UserService userService) {
+    public PaymentController(PaymentService paymentService, UserService userService,
+                             ResourceAuthorizationService authzService) {
         this.paymentService = paymentService;
         this.userService = userService;
+        this.authzService = authzService;
     }
 
     @GetMapping
     @Audited(action = AuditAction.READ, resource = "PaymentList")
-    public String list(Model model) {
-        model.addAttribute("payments", paymentService.findAll());
+    public String list(Model model, Authentication auth) {
+        boolean isAdmin = authzService.isAdmin(auth);
+        model.addAttribute("payments", paymentService.findAll().stream()
+                .map(p -> new PaymentView(p, isAdmin)).toList());
         model.addAttribute("channels", PaymentChannel.values());
         return "finance/payments";
     }
@@ -75,10 +83,10 @@ public class PaymentController {
 
     @GetMapping("/{id}")
     @Audited(action = AuditAction.READ, resource = "PaymentDetail")
-    public String detail(@PathVariable Long id, Model model) {
-        PaymentTransaction payment = paymentService.findById(id)
-                .orElseThrow(() -> new RuntimeException("Payment not found"));
-        model.addAttribute("payment", payment);
+    public String detail(@PathVariable Long id, Model model, Authentication auth) {
+        PaymentTransaction payment = authzService.authorizePayment(id, auth);
+        boolean isAdmin = authzService.isAdmin(auth);
+        model.addAttribute("payment", new PaymentView(payment, isAdmin));
         model.addAttribute("refunds", paymentService.getRefundsForPayment(id));
         return "finance/payment-detail";
     }

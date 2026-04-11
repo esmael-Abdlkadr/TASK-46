@@ -37,7 +37,7 @@ public class PaymentView {
         this.location = p.getLocation();
         this.payerName = MaskingUtil.mask(p.getPayerName(), isAdmin);
         this.checkNumber = MaskingUtil.mask(p.getCheckNumber(), isAdmin);
-        this.cardLastFour = p.getCardLastFour(); // already last-4 only
+        this.cardLastFour = MaskingUtil.mask(p.getCardLastFour(), isAdmin);
         this.description = p.getDescription();
         this.recordedByUsername = p.getRecordedByUsername();
         this.idempotencyKey = p.getIdempotencyKey();

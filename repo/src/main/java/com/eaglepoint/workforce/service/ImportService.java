@@ -93,12 +93,12 @@ public class ImportService {
                 throw new RuntimeException("File is empty");
             }
 
+            String[] header = rows.get(0);
+            validateHeaderSchema(job.getImportType(), header);
+
             job.setStatus(ImportStatus.IMPORTING);
             job.setTotalRows(rows.size() - 1); // exclude header
             importJobRepo.save(job);
-
-            String[] header = rows.get(0);
-            validateHeaderSchema(job.getImportType(), header);
 
             List<String> errors = new ArrayList<>();
             int successCount = 0;
@@ -132,6 +132,11 @@ public class ImportService {
     }
 
     @Transactional(readOnly = true)
+    public List<ImportJob> findByUser(Long userId) {
+        return importJobRepo.findByCreatedByOrderByCreatedAtDesc(userId);
+    }
+
+    @Transactional(readOnly = true)
     public Optional<ImportJob> findById(Long id) {
         return importJobRepo.findById(id);
     }
@@ -141,12 +146,18 @@ public class ImportService {
             "courses", Set.of("Code", "Name")
     );
 
+    private static final Map<String, Set<String>> ALLOWED_HEADERS = Map.of(
+            "departments", Set.of("Code", "Name", "Head Name", "Active"),
+            "courses", Set.of("Code", "Name", "Description", "Credit Hours", "Mandatory", "Active")
+    );
+
     void validateHeaderSchema(String importType, String[] header) {
         Set<String> required = REQUIRED_HEADERS.get(importType);
         if (required == null) {
             throw new RuntimeException("Unknown import type: " + importType);
         }
-        Set<String> actual = new HashSet<>();
+        Set<String> allowed = ALLOWED_HEADERS.get(importType);
+        Set<String> actual = new LinkedHashSet<>();
         for (String h : header) actual.add(h.trim());
 
         List<String> missing = new ArrayList<>();
@@ -156,6 +167,15 @@ public class ImportService {
         if (!missing.isEmpty()) {
             throw new RuntimeException("Missing required column(s): " + String.join(", ", missing)
                     + ". Expected schema: " + required);
+        }
+
+        List<String> unknown = new ArrayList<>();
+        for (String a : actual) {
+            if (!allowed.contains(a)) unknown.add(a);
+        }
+        if (!unknown.isEmpty()) {
+            throw new RuntimeException("Unknown column(s): " + String.join(", ", unknown)
+                    + ". Allowed columns: " + allowed);
         }
     }
 

@@ -11,6 +11,7 @@ import com.eaglepoint.workforce.enums.BooleanOperator;
 import com.eaglepoint.workforce.enums.CriterionType;
 import com.eaglepoint.workforce.service.*;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
@@ -32,19 +33,22 @@ public class MatchSearchController {
     private final JobProfileService jobProfileService;
     private final CandidateService candidateService;
     private final UserService userService;
+    private final ResourceAuthorizationService authzService;
 
     public MatchSearchController(MatchingService matchingService,
                                   SavedSearchService savedSearchService,
                                   SearchSnapshotService snapshotService,
                                   JobProfileService jobProfileService,
                                   CandidateService candidateService,
-                                  UserService userService) {
+                                  UserService userService,
+                                  ResourceAuthorizationService authzService) {
         this.matchingService = matchingService;
         this.savedSearchService = savedSearchService;
         this.snapshotService = snapshotService;
         this.jobProfileService = jobProfileService;
         this.candidateService = candidateService;
         this.userService = userService;
+        this.authzService = authzService;
     }
 
     @GetMapping
@@ -126,9 +130,9 @@ public class MatchSearchController {
 
     @GetMapping("/saved/{id}/load")
     public String loadSavedSearch(@PathVariable Long id, Model model,
-                                   @AuthenticationPrincipal UserDetails userDetails) {
-        SavedSearch ss = savedSearchService.findById(id)
-                .orElseThrow(() -> new RuntimeException("Saved search not found"));
+                                   @AuthenticationPrincipal UserDetails userDetails,
+                                   Authentication auth) {
+        SavedSearch ss = authzService.authorizeSavedSearch(id, auth);
         MatchSearchRequest request = savedSearchService.deserializeCriteria(ss.getSearchCriteriaJson());
 
         model.addAttribute("searchRequest", request);
@@ -177,9 +181,8 @@ public class MatchSearchController {
 
     @GetMapping("/snapshot/{id}")
     @Audited(action = AuditAction.READ, resource = "SearchSnapshot")
-    public String viewSnapshot(@PathVariable Long id, Model model) {
-        SearchSnapshot snapshot = snapshotService.findByIdWithResults(id)
-                .orElseThrow(() -> new RuntimeException("Snapshot not found"));
+    public String viewSnapshot(@PathVariable Long id, Model model, Authentication auth) {
+        SearchSnapshot snapshot = authzService.authorizeSnapshot(id, auth);
         model.addAttribute("snapshot", snapshot);
         return "recruiter/snapshot-detail";
     }

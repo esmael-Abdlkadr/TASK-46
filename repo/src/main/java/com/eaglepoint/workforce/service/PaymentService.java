@@ -4,6 +4,7 @@ import com.eaglepoint.workforce.entity.PaymentTransaction;
 import com.eaglepoint.workforce.entity.Refund;
 import com.eaglepoint.workforce.enums.PaymentChannel;
 import com.eaglepoint.workforce.enums.PaymentStatus;
+import com.eaglepoint.workforce.exception.ResourceNotFoundException;
 import com.eaglepoint.workforce.repository.PaymentTransactionRepository;
 import com.eaglepoint.workforce.repository.RefundRepository;
 import org.springframework.stereotype.Service;
@@ -63,7 +64,7 @@ public class PaymentService {
     public Refund processRefund(Long paymentId, BigDecimal refundAmount, String reason,
                                  Long processedBy, String processedByUsername) {
         PaymentTransaction payment = paymentRepo.findById(paymentId)
-                .orElseThrow(() -> new RuntimeException("Payment not found: " + paymentId));
+                .orElseThrow(() -> new ResourceNotFoundException("Payment not found: " + paymentId));
 
         if (refundAmount == null || refundAmount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Refund amount must be positive");
@@ -71,7 +72,7 @@ public class PaymentService {
 
         BigDecimal maxRefundable = payment.getAmount().subtract(payment.getRefundedAmount());
         if (refundAmount.compareTo(maxRefundable) > 0) {
-            throw new RuntimeException("Refund amount " + refundAmount +
+            throw new IllegalArgumentException("Refund amount " + refundAmount +
                     " exceeds available amount " + maxRefundable);
         }
 

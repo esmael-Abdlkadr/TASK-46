@@ -36,6 +36,11 @@ public class SavedSearchService {
     }
 
     @Transactional(readOnly = true)
+    public List<SavedSearch> findAll() {
+        return savedSearchRepository.findAll();
+    }
+
+    @Transactional(readOnly = true)
     public List<SavedSearch> findByCreator(Long createdBy) {
         return savedSearchRepository.findByCreatedByOrderByCreatedAtDesc(createdBy);
     }

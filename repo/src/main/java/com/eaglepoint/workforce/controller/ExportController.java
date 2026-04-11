@@ -6,10 +6,12 @@ import com.eaglepoint.workforce.entity.User;
 import com.eaglepoint.workforce.enums.AuditAction;
 import com.eaglepoint.workforce.enums.ExportStatus;
 import com.eaglepoint.workforce.service.ExportService;
+import com.eaglepoint.workforce.service.ResourceAuthorizationService;
 import com.eaglepoint.workforce.service.UserService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
@@ -22,16 +24,21 @@ public class ExportController {
 
     private final ExportService exportService;
     private final UserService userService;
+    private final ResourceAuthorizationService authzService;
 
-    public ExportController(ExportService exportService, UserService userService) {
+    public ExportController(ExportService exportService, UserService userService,
+                            ResourceAuthorizationService authzService) {
         this.exportService = exportService;
         this.userService = userService;
+        this.authzService = authzService;
     }
 
     @GetMapping
     @Audited(action = AuditAction.READ, resource = "ExportJobList")
-    public String list(Model model) {
-        model.addAttribute("exports", exportService.findAll());
+    public String list(Model model, Authentication auth) {
+        Long userId = authzService.resolveUserId(auth);
+        model.addAttribute("exports", authzService.isAdmin(auth)
+                ? exportService.findAll() : exportService.findByUser(userId));
         return "exports/list";
     }
 
@@ -55,9 +62,8 @@ public class ExportController {
     @GetMapping("/{id}/download")
     @Audited(action = AuditAction.EXPORT, resource = "ExportFile")
     @ResponseBody
-    public ResponseEntity<byte[]> download(@PathVariable Long id) {
-        ExportJob job = exportService.findById(id)
-                .orElseThrow(() -> new RuntimeException("Export job not found"));
+    public ResponseEntity<byte[]> download(@PathVariable Long id, Authentication auth) {
+        ExportJob job = authzService.authorizeExportJob(id, auth);
 
         if (job.getStatus() != ExportStatus.COMPLETED) {
             return ResponseEntity.badRequest().build();

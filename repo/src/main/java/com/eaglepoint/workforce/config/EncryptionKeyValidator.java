@@ -2,9 +2,8 @@ package com.eaglepoint.workforce.config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import java.util.Base64;
@@ -14,10 +13,10 @@ public class EncryptionKeyValidator {
 
     private static final Logger log = LoggerFactory.getLogger(EncryptionKeyValidator.class);
 
-    @Value("${app.encryption.key:}")
+    @Value("${app.encryption.key}")
     private String encryptionKey;
 
-    @EventListener(ApplicationReadyEvent.class)
+    @PostConstruct
     public void validateEncryptionKey() {
         if (encryptionKey == null || encryptionKey.isBlank()) {
             throw new IllegalStateException(

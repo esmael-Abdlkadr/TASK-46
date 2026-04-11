@@ -9,15 +9,16 @@ public class ApiError {
     private int status;
     private String code;
     private String message;
-    private List<String> details;
+    private List<String> fieldErrors;
     private LocalDateTime timestamp = LocalDateTime.now();
+    private String path;
 
     public ApiError() {}
     public ApiError(int status, String code, String message) {
         this.status = status; this.code = code; this.message = message;
     }
-    public ApiError(int status, String code, String message, List<String> details) {
-        this(status, code, message); this.details = details;
+    public ApiError(int status, String code, String message, List<String> fieldErrors) {
+        this(status, code, message); this.fieldErrors = fieldErrors;
     }
 
     public int getStatus() { return status; }
@@ -26,7 +27,9 @@ public class ApiError {
     public void setCode(String code) { this.code = code; }
     public String getMessage() { return message; }
     public void setMessage(String message) { this.message = message; }
-    public List<String> getDetails() { return details; }
-    public void setDetails(List<String> details) { this.details = details; }
+    public List<String> getFieldErrors() { return fieldErrors; }
+    public void setFieldErrors(List<String> fieldErrors) { this.fieldErrors = fieldErrors; }
     public LocalDateTime getTimestamp() { return timestamp; }
+    public String getPath() { return path; }
+    public void setPath(String path) { this.path = path; }
 }

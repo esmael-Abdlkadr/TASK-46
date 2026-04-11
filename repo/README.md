@@ -84,28 +84,49 @@ JSON API at `/api/v1/**` (CSRF disabled for API paths, session-authenticated):
 | `/api/v1/payments/{id}` | GET | Payment detail (role-aware field masking) |
 | `/api/v1/payments/{id}/refund` | POST | Process refund |
 | `/api/v1/search` | POST | Unified search across 12 domains |
-| `/api/v1/exports` | GET/POST | List or queue export |
+| `/api/v1/search/saved` | GET | List saved searches (owner-scoped) |
+| `/api/v1/search/saved/{id}` | GET | Saved search detail (owner-scoped) |
+| `/api/v1/exports` | GET/POST | List or queue export (owner-scoped list, validated DTO for create) |
 | `/api/v1/exports/{id}` | GET | Export detail (owner-scoped) |
+| `/api/v1/imports` | GET | List imports (owner-scoped) |
 | `/api/v1/imports/{id}` | GET | Import detail (owner-scoped) |
 | `/api/v1/metrics/{id}/versions` | GET | Metric version history |
 | `/api/v1/metrics/versions/{id}/publish` | POST | Publish metric version (admin only) |
 | `/api/v1/metrics/{id}/rollback` | POST | Rollback metric version (admin only) |
 
-Error responses use structured JSON: `{"status":404,"code":"NOT_FOUND","message":"...","timestamp":"..."}`.
+Error responses use a consistent envelope:
+```json
+{"status":404,"code":"NOT_FOUND","message":"...","timestamp":"...","path":"/api/v1/..."}
+```
+Validation errors include `fieldErrors`:
+```json
+{"status":400,"code":"VALIDATION_ERROR","message":"Validation failed","fieldErrors":["Amount is required"],"timestamp":"...","path":"/api/v1/payments"}
+```
+Internal errors never expose stack traces or internal details.
 
 ## Security
 
 - **Rate limiting:** 30 req/min per authenticated user
-- **Biometric encryption:** AES-256-GCM with random IV, key from environment (no hardcoded fallback)
-- **Field masking:** Sensitive fields (payer name, check number) masked for non-admin roles via DTO transformation
-- **Object-level authorization:** User-created resources (saved searches, exports, imports, talent pools) are owner-scoped; admins see all
+- **Biometric encryption:** AES-256-GCM with random IV, key from environment. No hardcoded fallback -- `APP_ENCRYPTION_KEY` must be set or the application fails immediately at startup (`@PostConstruct` validation). The key is validated for correct Base64 encoding and 32-byte length.
+- **Field masking:** Sensitive fields (payer name, check number, card last four) masked for non-admin roles in both API responses and Thymeleaf views via PaymentView DTO. Masking is enforced at the service/DTO layer -- Thymeleaf templates never see raw entity values.
+- **Object-level authorization:** All ID-based routes (saved searches, snapshots, talent pools, exports, imports) enforce owner-or-admin access via centralized `ResourceAuthorizationService`; returns 404 for non-owner access (no existence leakage). List endpoints are owner-scoped for non-admin users; admins can see all records.
+- **Import validation:** Strict header schema validation during VALIDATING phase (before any rows are processed) -- missing required columns and unknown/extra columns both fail fast with descriptive errors; row-level error reports retained. Duplicate files detected via SHA-256 fingerprint.
+- **Payment idempotency:** Deterministic SHA-256 key from business fields only (no timestamp/random); accepts client-provided idempotency key; duplicate submissions return existing record
+- **Domain exceptions:** Service layer uses typed exceptions (`ResourceNotFoundException`, `IllegalArgumentException`) -- no generic `RuntimeException` leakage from business logic
 - **Audit logging:** All operations logged with user ID, timestamp, and workstation IP
 - **RBAC:** 4 roles with URL-level and method-level security
+
+## Migration Notes
+
+If upgrading from a previous version:
+- **Encryption key:** The `APP_ENCRYPTION_KEY` environment variable is now **mandatory** with no fallback default. The application will fail to start if this variable is missing, has invalid Base64, or does not decode to exactly 32 bytes. Set it before starting the application.
+- **API error format:** The `details` field in API error responses has been renamed to `fieldErrors`. The error envelope now includes a `path` field. Update any API clients that parse error responses.
+- **Import validation order:** Header schema validation now runs during the VALIDATING phase (before row processing). Previously, validation ran after the status changed to IMPORTING.
 
 ## Running Tests
 
 ```bash
-# Full suite (unit + API):
+# Full suite (unit + integration + API):
 ./run_tests.sh
 
 # Unit tests only:
@@ -113,7 +134,23 @@ Error responses use structured JSON: `{"status":404,"code":"NOT_FOUND","message"
 
 # API tests only:
 ./run_tests.sh api
+
+# Maven test execution (all JUnit tests):
+./mvnw test -Dspring.profiles.active=test
+
+# Run specific test class:
+./mvnw test -Dtest=ObjectLevelAuthzTest -Dspring.profiles.active=test
 ```
+
+### Test Coverage Scope
+
+Tests cover:
+- **Security:** Route-level auth (401/403), object-level authz (IDOR prevention), cross-user isolation
+- **Masking:** Admin vs non-admin field masking for API and web views
+- **Idempotency:** Duplicate payment submission, client-supplied keys, deterministic key generation
+- **Import:** Missing headers, unknown headers, wrong-type rows, duplicate fingerprints, validation ordering
+- **Encryption:** Missing key fail-fast, invalid key length, invalid Base64
+- **Search:** Cross-domain results, domain filtering, location filtering
 
 Test outputs:
 - `unit_tests/unit_test_results.txt` -- JUnit results
