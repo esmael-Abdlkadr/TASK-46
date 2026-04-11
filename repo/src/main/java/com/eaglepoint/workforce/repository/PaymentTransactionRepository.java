@@ -36,5 +36,5 @@ public interface PaymentTransactionRepository extends JpaRepository<PaymentTrans
            "ORDER BY p.location")
     List<String> findDistinctLocations();
 
-    List<PaymentTransaction> findAllByOrderByTransactionDateDesc();
+    List<PaymentTransaction> findAllByOrderByTransactionDateDescIdDesc();
 }

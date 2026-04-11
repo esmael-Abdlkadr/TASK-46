@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Component
 public class RateLimitFilter extends OncePerRequestFilter {
 
-    @Value("${app.rate-limit.requests-per-minute:30}")
+    @Value("${app.rate-limit.requests-per-minute:${app.ratelimit.requests-per-minute:${app.ratelimit.requestsperminute:30}}}")
     private int requestsPerMinute;
 
     private final ConcurrentMap<String, RateBucket> buckets = new ConcurrentHashMap<>();

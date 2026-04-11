@@ -23,7 +23,7 @@ app:
   encryption:
     key: ${APP_ENCRYPTION_KEY}
   rate-limit:
-    requests-per-minute: 30
+    requests-per-minute: 1000
   export:
     storage-path: ${APP_EXPORT_PATH:./exports}
   import:

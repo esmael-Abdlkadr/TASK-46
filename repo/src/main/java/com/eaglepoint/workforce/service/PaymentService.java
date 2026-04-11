@@ -97,7 +97,7 @@ public class PaymentService {
 
     @Transactional(readOnly = true)
     public List<PaymentTransaction> findAll() {
-        return paymentRepo.findAllByOrderByTransactionDateDesc();
+        return paymentRepo.findAllByOrderByTransactionDateDescIdDesc();
     }
 
     @Transactional(readOnly = true)
