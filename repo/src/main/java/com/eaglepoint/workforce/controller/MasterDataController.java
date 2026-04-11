@@ -14,7 +14,6 @@ import java.time.LocalDate;
 
 @Controller
 @RequestMapping("/masterdata")
-@PreAuthorize("hasRole('ADMINISTRATOR')")
 public class MasterDataController {
 
     private final MasterDataService masterDataService;
@@ -32,6 +31,7 @@ public class MasterDataController {
     }
 
     @PostMapping("/departments/save")
+    @PreAuthorize("hasRole('ADMINISTRATOR')")
     @Audited(action = AuditAction.CREATE, resource = "Department")
     public String saveDepartment(@RequestParam String code, @RequestParam String name,
                                   @RequestParam(required = false) String headName,
@@ -62,6 +62,7 @@ public class MasterDataController {
     }
 
     @PostMapping("/classes/save")
+    @PreAuthorize("hasRole('ADMINISTRATOR')")
     @Audited(action = AuditAction.CREATE, resource = "StaffingClass")
     public String saveClass(@RequestParam String code, @RequestParam String name,
                              @RequestParam(required = false) Long departmentId,
@@ -96,6 +97,7 @@ public class MasterDataController {
     }
 
     @PostMapping("/courses/save")
+    @PreAuthorize("hasRole('ADMINISTRATOR')")
     @Audited(action = AuditAction.CREATE, resource = "TrainingCourse")
     public String saveCourse(@RequestParam String code, @RequestParam String name,
                               @RequestParam(required = false) String description,
@@ -133,6 +135,7 @@ public class MasterDataController {
     }
 
     @PostMapping("/semesters/save")
+    @PreAuthorize("hasRole('ADMINISTRATOR')")
     @Audited(action = AuditAction.CREATE, resource = "Semester")
     public String saveSemester(@RequestParam String code, @RequestParam String name,
                                 @RequestParam String startDate, @RequestParam String endDate,

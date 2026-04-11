@@ -35,10 +35,19 @@ public class ImportController {
     @GetMapping
     @Audited(action = AuditAction.READ, resource = "ImportJobList")
     public String list(Model model, Authentication auth) {
-        Long userId = authzService.resolveUserId(auth);
-        model.addAttribute("imports", authzService.isAdmin(auth)
-                ? importService.findAll() : importService.findByUser(userId));
+        if (authzService.isAdmin(auth)) {
+            model.addAttribute("imports", importService.findAll());
+        } else {
+            Long userId = userService.findByUsername(auth.getName()).map(User::getId).orElse(null);
+            model.addAttribute("imports", userId != null ? importService.findByUser(userId) : java.util.List.of());
+        }
         return "imports/list";
+    }
+
+    @GetMapping("/list")
+    @Audited(action = AuditAction.READ, resource = "ImportJobList")
+    public String listAlias(Model model, Authentication auth) {
+        return list(model, auth);
     }
 
     @PostMapping("/upload")

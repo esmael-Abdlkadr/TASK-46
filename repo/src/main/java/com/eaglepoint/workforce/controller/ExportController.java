@@ -36,10 +36,19 @@ public class ExportController {
     @GetMapping
     @Audited(action = AuditAction.READ, resource = "ExportJobList")
     public String list(Model model, Authentication auth) {
-        Long userId = authzService.resolveUserId(auth);
-        model.addAttribute("exports", authzService.isAdmin(auth)
-                ? exportService.findAll() : exportService.findByUser(userId));
+        if (authzService.isAdmin(auth)) {
+            model.addAttribute("exports", exportService.findAll());
+        } else {
+            Long userId = userService.findByUsername(auth.getName()).map(User::getId).orElse(null);
+            model.addAttribute("exports", userId != null ? exportService.findByUser(userId) : java.util.List.of());
+        }
         return "exports/list";
+    }
+
+    @GetMapping("/list")
+    @Audited(action = AuditAction.READ, resource = "ExportJobList")
+    public String listAlias(Model model, Authentication auth) {
+        return list(model, auth);
     }
 
     @PostMapping("/create")

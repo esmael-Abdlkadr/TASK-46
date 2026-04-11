@@ -29,6 +29,11 @@ public class UnifiedSearchController {
         return "search/unified";
     }
 
+    @GetMapping("/unified")
+    public String searchFormAlias(Model model) {
+        return searchForm(model);
+    }
+
     @PostMapping
     @Audited(action = AuditAction.READ, resource = "UnifiedSearch")
     public String executeSearch(@ModelAttribute UnifiedSearchRequest request, Model model) {
@@ -38,5 +43,11 @@ public class UnifiedSearchController {
         model.addAttribute("domains", SearchDomain.values());
         model.addAttribute("resultCount", results.size());
         return "search/unified";
+    }
+
+    @PostMapping("/unified")
+    @Audited(action = AuditAction.READ, resource = "UnifiedSearch")
+    public String executeSearchAlias(@ModelAttribute UnifiedSearchRequest request, Model model) {
+        return executeSearch(request, model);
     }
 }
