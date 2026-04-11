@@ -68,7 +68,6 @@ public class ImportService {
         return importJobRepo.save(job);
     }
 
-    @Async("importExecutor")
     public void executeImport(Long jobId) {
         ImportJob job = importJobRepo.findById(jobId).orElse(null);
         if (job == null || job.getStatus() == ImportStatus.DUPLICATE) return;
@@ -124,6 +123,11 @@ public class ImportService {
             job.setCompletedAt(LocalDateTime.now());
         }
         importJobRepo.save(job);
+    }
+
+    @Async("importExecutor")
+    public void executeImportAsync(Long jobId) {
+        executeImport(jobId);
     }
 
     @Transactional(readOnly = true)

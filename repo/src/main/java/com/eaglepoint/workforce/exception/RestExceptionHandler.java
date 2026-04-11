@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -28,9 +29,9 @@ public class RestExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
     }
 
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ApiError> handleForbidden(AccessDeniedException ex,
-                                                     HttpServletRequest request) {
+    @ExceptionHandler({com.eaglepoint.workforce.exception.AccessDeniedException.class, AccessDeniedException.class})
+    public ResponseEntity<ApiError> handleForbidden(RuntimeException ex,
+                                                      HttpServletRequest request) {
         ApiError error = new ApiError(403, "FORBIDDEN", ex.getMessage());
         error.setPath(request.getRequestURI());
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);

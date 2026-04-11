@@ -66,7 +66,7 @@ public class ImportController {
                 return "redirect:/imports";
             }
 
-            importService.executeImport(job.getId());
+            importService.executeImportAsync(job.getId());
             redirectAttrs.addFlashAttribute("success",
                     "Import of '" + originalName + "' queued for processing");
         } catch (Exception e) {
