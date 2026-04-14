@@ -1,4 +1,4 @@
-API Functional Test Report - 2026-04-09 09:38:04
+API Functional Test Report - 2026-04-11 23:17:07
 Base URL: http://localhost:8081
 ============================================================
 
@@ -104,7 +104,7 @@ Base URL: http://localhost:8081
   PASS  Unauthenticated REST redirects (HTTP 302)
 
 --- 14. ERROR HANDLING & EDGE CASES ---
-  PASS  Non-existent metric handled (HTTP 200)
+  PASS  Non-existent metric handled (HTTP 500)
   PASS  Missing required fields handled
   PASS  Negative amount handled
   PASS  Static CSS accessible without auth (HTTP 200)
