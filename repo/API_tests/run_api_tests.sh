@@ -96,6 +96,40 @@ extract_id() {
     echo "$body" | grep -oE "${pattern}/[0-9]+" | head -1 | grep -oE '[0-9]+$'
 }
 
+json_top_level_long_id() {
+    local json="$1"
+    if command -v jq >/dev/null 2>&1; then
+        echo "$json" | jq -r '.id // empty' 2>/dev/null || true
+        return
+    fi
+    echo "$json" | python3 -c 'import json,sys
+try:
+    v=json.load(sys.stdin)
+    i=v.get("id")
+    print(i if i is not None else "")
+except Exception:
+    pass
+' 2>/dev/null || true
+}
+
+json_first_draft_metric_version_id() {
+    local json="$1"
+    if command -v jq >/dev/null 2>&1; then
+        echo "$json" | jq -r 'map(select((.status|tostring|ascii_downcase)=="draft")) | .[0].id // empty' 2>/dev/null || true
+        return
+    fi
+    echo "$json" | python3 -c 'import json,sys
+try:
+    for v in json.load(sys.stdin):
+        st=v.get("status")
+        if st is not None and str(st).upper()=="DRAFT":
+            print(v.get("id",""))
+            break
+except Exception:
+    pass
+' 2>/dev/null || true
+}
+
 # Login as a specific user and store session cookies
 do_login() {
     local username="$1" password="$2" jar="$3"
@@ -248,7 +282,9 @@ BODY=$(do_get_body "/admin/metrics")
 assert_contains "Derived metric created & visible" "test-growth-rate" "$BODY"
 
 METRIC_ID=$(extract_id "$BODY" "/admin/metrics")
+REST_PUBLISH_METRIC_ID=""
 if [ -n "$METRIC_ID" ]; then
+    REST_PUBLISH_METRIC_ID="$METRIC_ID"
     CODE=$(do_get "/admin/metrics/$METRIC_ID")
     assert_status "View metric detail" "200" "$CODE"
 
@@ -271,24 +307,29 @@ assert_contains "Dimension created" "test-department" "$BODY"
 section "5. PAYMENTS - CRUD & IDEMPOTENCY"
 ###############################################################################
 
+PAY_TAG="$(date +%s)$RANDOM"
+REF_PAY_001="PAY-API-001-${PAY_TAG}"
+REF_PAY_002="PAY-API-002-${PAY_TAG}"
+REF_PAY_003="PAY-API-003-${PAY_TAG}"
+
 do_post_body "/finance/payments/new" \
-    "--data-urlencode referenceNumber=PAY-API-001 --data-urlencode amount=250.00 --data-urlencode channel=CASH --data-urlencode location=Main+Office --data-urlencode payerName=John+Doe --data-urlencode description=API+test+payment" > /dev/null
+    "--data-urlencode referenceNumber=${REF_PAY_001} --data-urlencode amount=250.00 --data-urlencode channel=CASH --data-urlencode location=Main+Office --data-urlencode payerName=John+Doe --data-urlencode description=API+test+payment" > /dev/null
 do_post_body "/finance/payments/new" \
-    "--data-urlencode referenceNumber=PAY-API-002 --data-urlencode amount=500.00 --data-urlencode channel=CHECK --data-urlencode location=Branch+A --data-urlencode payerName=Jane+Smith --data-urlencode checkNumber=CHK-9999" > /dev/null
+    "--data-urlencode referenceNumber=${REF_PAY_002} --data-urlencode amount=500.00 --data-urlencode channel=CHECK --data-urlencode location=Branch+A --data-urlencode payerName=Jane+Smith --data-urlencode checkNumber=CHK-9999" > /dev/null
 do_post_body "/finance/payments/new" \
-    "--data-urlencode referenceNumber=PAY-API-003 --data-urlencode amount=75.50 --data-urlencode channel=MANUAL_CARD --data-urlencode location=Main+Office --data-urlencode cardLastFour=4321" > /dev/null
+    "--data-urlencode referenceNumber=${REF_PAY_003} --data-urlencode amount=75.50 --data-urlencode channel=MANUAL_CARD --data-urlencode location=Main+Office --data-urlencode cardLastFour=4321" > /dev/null
 
 BODY=$(do_get_body "/finance/payments")
-assert_contains "Cash payment (PAY-API-001) in list" "PAY-API-001" "$BODY"
-assert_contains "Check payment (PAY-API-002) in list" "PAY-API-002" "$BODY"
-assert_contains "Card payment (PAY-API-003) in list" "PAY-API-003" "$BODY"
+assert_contains "Cash payment (${REF_PAY_001}) in list" "${REF_PAY_001}" "$BODY"
+assert_contains "Check payment (${REF_PAY_002}) in list" "${REF_PAY_002}" "$BODY"
+assert_contains "Card payment (${REF_PAY_003}) in list" "${REF_PAY_003}" "$BODY"
 
 sleep 1
 BODY=$(do_get_body "/finance/payments")
 PAY_ID=$(extract_id "$BODY" "/finance/payments")
 if [ -n "$PAY_ID" ]; then
     BODY=$(do_get_body "/finance/payments/$PAY_ID")
-    assert_contains "Payment detail shows reference" "PAY-API" "$BODY"
+    assert_contains "Payment detail shows reference" "${REF_PAY_003}" "$BODY"
     assert_contains "Payment detail shows idempotency key" "idempotency" "$BODY"
 
     do_post_body "/finance/payments/$PAY_ID/refund" \
@@ -307,10 +348,10 @@ section "6. BANK FILE IMPORT & RECONCILIATION"
 ###############################################################################
 
 BANK_CSV="/tmp/test_bank_file.csv"
-cat > "$BANK_CSV" << 'CSVEOF'
+cat > "$BANK_CSV" << CSVEOF
 Reference,Amount,Date,Description
-PAY-API-001,250.00,2026-04-01,Payment one
-PAY-API-002,500.00,2026-04-02,Payment two
+${REF_PAY_001},250.00,2026-04-01,Payment one
+${REF_PAY_002},500.00,2026-04-02,Payment two
 BANK-ONLY-001,999.99,2026-04-03,Unmatched bank entry
 CSVEOF
 
@@ -646,12 +687,15 @@ section "15. MISSING API ENDPOINTS - FULL CONTRACT COVERAGE"
 do_login "admin" "admin123" "$COOKIE_JAR"
 
 # 15.1 POST /api/v1/payments/{id}/refund - happy path
-BODY=$(curl -s -b "$COOKIE_JAR" -X POST "$BASE_URL/api/v1/payments" \
+S15_TAG="$(date +%s)$RANDOM"
+CREATE_PAY_JSON=$(curl -s -b "$COOKIE_JAR" -w "\n%{http_code}" -X POST "$BASE_URL/api/v1/payments" \
     -H "Content-Type: application/json" \
-    -d '{"idempotencyKey":"refund-section15-001","referenceNumber":"REF-SECT15-001","amount":300.00,"channel":"CASH","location":"HQ"}')
-REFUND_PAY_ID=$(echo "$BODY" | grep -o '"id":[0-9]*' | head -1 | grep -o '[0-9]*')
+    -d "{\"idempotencyKey\":\"refund-section15-${S15_TAG}\",\"referenceNumber\":\"REF-SECT15-${S15_TAG}\",\"amount\":300.00,\"channel\":\"CASH\",\"location\":\"HQ\"}")
+CREATE_PAY_CODE=$(echo "$CREATE_PAY_JSON" | tail -n1)
+BODY=$(echo "$CREATE_PAY_JSON" | sed '$d')
+REFUND_PAY_ID=$(json_top_level_long_id "$BODY")
 
-if [ -n "$REFUND_PAY_ID" ]; then
+if [ "$CREATE_PAY_CODE" = "200" ] && [ -n "$REFUND_PAY_ID" ]; then
     REFUND_BODY=$(curl -s -b "$COOKIE_JAR" -X POST "$BASE_URL/api/v1/payments/$REFUND_PAY_ID/refund" \
         -H "Content-Type: application/json" \
         -d '{"amount":50.00,"reason":"Section 15 test refund"}')
@@ -664,7 +708,7 @@ if [ -n "$REFUND_PAY_ID" ]; then
     assert_contains "Refund response contains id" "\"id\"" "$REFUND_BODY"
 else
     TOTAL=$((TOTAL + 3)); FAILED=$((FAILED + 3))
-    echo -e "  ${RED}FAIL${NC}  Could not create payment for refund test"
+    echo -e "  ${RED}FAIL${NC}  Could not create payment for refund test (HTTP ${CREATE_PAY_CODE:-?}, id='${REFUND_PAY_ID:-}')"
     echo "  FAIL  Could not create payment for refund test" >> "$REPORT_FILE"
 fi
 
@@ -693,8 +737,11 @@ assert_contains "Refund 404 has path" "path" "$BODY"
 
 # 15.4 GET /api/v1/metrics/{id}/versions + POST /api/v1/metrics/versions/{id}/publish (true HTTP)
 BODY=$(do_get_body "/admin/metrics")
-METRIC_ID=$(extract_id "$BODY" "/admin/metrics")
+METRIC_ID="${REST_PUBLISH_METRIC_ID:-$(extract_id "$BODY" "/admin/metrics")}"
 if [ -n "$METRIC_ID" ]; then
+    do_post_body "/admin/metrics/$METRIC_ID/versions/draft" \
+        "--data-urlencode changeDescription=REST+API+publish+prep" "$COOKIE_JAR" "/admin/metrics/$METRIC_ID" > /dev/null
+
     VERSIONS_CODE=$(curl -s -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" \
         "$BASE_URL/api/v1/metrics/$METRIC_ID/versions")
     assert_status "REST GET /api/v1/metrics/{id}/versions returns 200" "200" "$VERSIONS_CODE"
@@ -710,33 +757,12 @@ if [ -n "$METRIC_ID" ]; then
         echo "  WARN  Versions endpoint body check (tolerated)" >> "$REPORT_FILE"
     fi
 
-    DRAFT_VID=""
-    if command -v python3 >/dev/null 2>&1; then
-        DRAFT_VID=$(echo "$VERSIONS_BODY" | python3 -c 'import json,sys
-try:
-    for v in json.load(sys.stdin):
-        if v.get("status") == "DRAFT":
-            print(v["id"])
-            break
-except Exception:
-    pass
-' 2>/dev/null || true)
-    fi
+    DRAFT_VID=$(json_first_draft_metric_version_id "$VERSIONS_BODY")
     if [ -z "$DRAFT_VID" ]; then
         do_post_body "/admin/metrics/$METRIC_ID/versions/draft" \
-            "--data-urlencode changeDescription=REST+API+publish+prep" "$COOKIE_JAR" "/admin/metrics/$METRIC_ID" > /dev/null
+            "--data-urlencode changeDescription=REST+API+publish+retry+draft" "$COOKIE_JAR" "/admin/metrics/$METRIC_ID" > /dev/null
         VERSIONS_BODY=$(curl -s -b "$COOKIE_JAR" "$BASE_URL/api/v1/metrics/$METRIC_ID/versions")
-        if command -v python3 >/dev/null 2>&1; then
-            DRAFT_VID=$(echo "$VERSIONS_BODY" | python3 -c 'import json,sys
-try:
-    for v in json.load(sys.stdin):
-        if v.get("status") == "DRAFT":
-            print(v["id"])
-            break
-except Exception:
-    pass
-' 2>/dev/null || true)
-        fi
+        DRAFT_VID=$(json_first_draft_metric_version_id "$VERSIONS_BODY")
     fi
     if [ -n "$DRAFT_VID" ]; then
         PUBLISH_BODY=$(curl -s -b "$COOKIE_JAR" -X POST "$BASE_URL/api/v1/metrics/versions/$DRAFT_VID/publish")

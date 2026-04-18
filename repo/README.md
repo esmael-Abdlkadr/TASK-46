@@ -126,6 +126,8 @@ curl -s -b /tmp/wf.txt -X POST http://localhost:8081/api/v1/payments \
 | `SPRING_DATASOURCE_USERNAME` | No | DB username | `root` |
 | `SPRING_DATASOURCE_PASSWORD` | No | DB password | `root` |
 | `FACE_RECOGNITION_URL` | No | URL of the Python face recognition service | `http://localhost:5001` |
+
+Docker Compose overrides JDBC credentials to **`workforce` / `workforce`** (see `docker-compose.yml`). If you see MySQL **Access denied** after changing compose, remove the old volume once: `RUN_TESTS_RESET_DB=1 ./run_tests.sh` or `docker compose down -v && ./run_tests.sh`.
 | `APP_RATELIMIT_REQUESTSPERMINUTE` | No | Rate limit per user per minute | `30` |
 | `APP_EXPORT_PATH` | No | Export file storage directory | `./exports` |
 | `APP_IMPORT_PATH` | No | Import file storage directory | `./imports` |
@@ -149,7 +151,8 @@ Flyway runs automatically on startup. Migrations are in `src/main/resources/db/m
 
 To connect to the database directly:
 ```bash
-docker exec -it workforce-db mysql -uroot -proot workforce_db
+docker exec -it workforce-db mysql -uworkforce -pworkforce workforce_db
+# admin (root): mysql -uroot -proot
 ```
 
 ## Services Architecture

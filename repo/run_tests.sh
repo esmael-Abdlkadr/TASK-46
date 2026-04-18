@@ -11,8 +11,12 @@
 #   ./run_tests.sh api          # Run only API tests (curl)
 #   ./run_tests.sh js           # Run only Vitest + Playwright (Docker; stack is started first)
 #
-# Prerequisites: Docker and Docker Compose. Modes all|api|js run
-#   docker compose up -d and wait for 3/3 healthy from this script's directory.
+# Optional:
+#   RUN_TESTS_FRESH=1     docker compose down first (keeps DB volume)
+#   RUN_TESTS_RESET_DB=1  docker compose down -v first (recreates MySQL; fixes Access denied / stale grants)
+#
+# Prerequisites: Docker and Docker Compose only. Modes all|api|js run
+#   docker compose up -d --build --remove-orphans (no separate docker commands needed).
 ###############################################################################
 
 set -uo pipefail
@@ -75,11 +79,22 @@ case "$RUN_MODE" in all|api|js) START_STACK=1 ;; esac
 RUNNING=0
 if [ "$START_STACK" -eq 1 ]; then
     echo ""
-    echo -e "${CYAN}[DOCKER] Starting stack (docker compose up -d)...${NC}"
-    docker compose up -d
+    if [ "${RUN_TESTS_RESET_DB:-0}" = "1" ]; then
+        echo -e "${CYAN}[DOCKER] Reset DB volume: docker compose down -v...${NC}"
+        docker compose down -v --remove-orphans 2>/dev/null || true
+    elif [ "${RUN_TESTS_FRESH:-0}" = "1" ]; then
+        echo -e "${CYAN}[DOCKER] Fresh start: docker compose down (volumes preserved)...${NC}"
+        docker compose down --remove-orphans 2>/dev/null || true
+    fi
+    echo -e "${CYAN}[DOCKER] Building images & starting stack (compose up --build)...${NC}"
+    echo -e "${YELLOW}         First run may take several minutes (Maven + container pulls).${NC}"
+    if ! docker compose up -d --build --remove-orphans; then
+        echo -e "${RED}[ERROR] docker compose up failed.${NC}"
+        exit 1
+    fi
     echo -e "${CYAN}[DOCKER] Waiting for all services healthy (db + face + backend)...${NC}"
     RETRIES=0
-    while [ "$RETRIES" -lt 36 ]; do
+    while [ "$RETRIES" -lt 72 ]; do
         RUNNING=$(docker compose ps --format "{{.Name}} {{.Status}}" 2>/dev/null | grep -c "healthy" || true)
         if [ "$RUNNING" -ge 3 ]; then
             break
@@ -90,6 +105,9 @@ if [ "$START_STACK" -eq 1 ]; then
     if [ "$RUNNING" -lt 3 ]; then
         echo -e "${RED}[ERROR] Services failed to become healthy within timeout (have $RUNNING/3 healthy).${NC}"
         docker compose ps
+        echo ""
+        echo -e "${YELLOW}[DOCKER] workforce-backend logs (last 40 lines):${NC}"
+        docker logs workforce-backend --tail 40 2>&1 || true
         exit 1
     fi
     echo -e "${GREEN}  Services:     $RUNNING/3 healthy${NC}"
