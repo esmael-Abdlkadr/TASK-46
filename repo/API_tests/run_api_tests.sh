@@ -204,11 +204,16 @@ do_get_body() {
 }
 
 # POST with form data. Gets CSRF from $csrf_page (4th arg) or from the POST path itself.
+# Retries the CSRF GET up to 3 times to handle transient empty-page responses.
 do_post_body() {
     local path="$1" data="$2" jar="${3:-$COOKIE_JAR}" csrf_page="${4:-$1}"
     local page csrf
-    page=$(curl -s --compressed -b "$jar" -c "$jar" "$BASE_URL$csrf_page")
-    csrf=$(echo "$page" | grep -o 'value="[^"]*"' | head -1 | sed 's/value="//;s/"//')
+    for _csrf_try in 1 2 3; do
+        page=$(curl -s --compressed -b "$jar" -c "$jar" "$BASE_URL$csrf_page")
+        csrf=$(echo "$page" | grep -o 'value="[^"]*"' | head -1 | sed 's/value="//;s/"//')
+        [ -n "$csrf" ] && break
+        sleep 2
+    done
     curl -s --compressed -L -b "$jar" -c "$jar" \
         -X POST "$BASE_URL$path" \
         --data-urlencode "_csrf=$csrf" \
@@ -357,31 +362,37 @@ assert_contains "Dimension created" "test-department" "$BODY"
 section "5. PAYMENTS - CRUD & IDEMPOTENCY"
 ###############################################################################
 
+# Fresh login to guarantee a clean session before payment creation.
+do_login "admin" "admin123" "$COOKIE_JAR"
+sleep 1
+
 PAY_TAG="$(date +%s)$RANDOM"
 REF_PAY_001="PAY-API-001-${PAY_TAG}"
 REF_PAY_002="PAY-API-002-${PAY_TAG}"
 REF_PAY_003="PAY-API-003-${PAY_TAG}"
 
-for _try in 1 2; do
+for _try in 1 2 3; do
     do_post_body "/finance/payments/new" \
         "--data-urlencode referenceNumber=${REF_PAY_001} --data-urlencode amount=250.00 --data-urlencode channel=CASH --data-urlencode location=Main+Office --data-urlencode payerName=John+Doe --data-urlencode description=API+test+payment" > /dev/null
-    sleep 1
-    do_get_body "/finance/payments" | grep -Fq "$REF_PAY_001" && break
     sleep 2
+    do_get_body "/finance/payments" | grep -Fq "$REF_PAY_001" && break
+    sleep 3
 done
-for _try in 1 2; do
+sleep 1
+for _try in 1 2 3; do
     do_post_body "/finance/payments/new" \
         "--data-urlencode referenceNumber=${REF_PAY_002} --data-urlencode amount=500.00 --data-urlencode channel=CHECK --data-urlencode location=Branch+A --data-urlencode payerName=Jane+Smith --data-urlencode checkNumber=CHK-9999" > /dev/null
-    sleep 1
-    do_get_body "/finance/payments" | grep -Fq "$REF_PAY_002" && break
     sleep 2
+    do_get_body "/finance/payments" | grep -Fq "$REF_PAY_002" && break
+    sleep 3
 done
-for _try in 1 2; do
+sleep 1
+for _try in 1 2 3; do
     do_post_body "/finance/payments/new" \
         "--data-urlencode referenceNumber=${REF_PAY_003} --data-urlencode amount=75.50 --data-urlencode channel=MANUAL_CARD --data-urlencode location=Main+Office --data-urlencode cardLastFour=4321" > /dev/null
-    sleep 1
-    do_get_body "/finance/payments" | grep -Fq "$REF_PAY_003" && break
     sleep 2
+    do_get_body "/finance/payments" | grep -Fq "$REF_PAY_003" && break
+    sleep 3
 done
 
 BODY=$(do_get_body "/finance/payments")
