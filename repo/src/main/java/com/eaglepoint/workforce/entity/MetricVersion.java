@@ -1,5 +1,6 @@
 package com.eaglepoint.workforce.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.eaglepoint.workforce.enums.MetricVersionStatus;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
@@ -11,6 +12,7 @@ import java.time.LocalDateTime;
     @Index(name = "idx_mv_metric", columnList = "metric_id"),
     @Index(name = "idx_mv_status", columnList = "status")
 })
+@JsonIgnoreProperties({"metricDefinition", "hibernateLazyInitializer", "handler"})
 public class MetricVersion {
 
     @Id

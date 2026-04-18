@@ -64,7 +64,7 @@ assert_status() {
 assert_contains() {
     local test_name="$1" expected_text="$2" body="$3"
     TOTAL=$((TOTAL + 1))
-    if echo "$body" | grep -qi "$expected_text"; then
+    if echo "$body" | grep -Fiq "$expected_text"; then
         PASSED=$((PASSED + 1))
         echo -e "  ${GREEN}PASS${NC}  $test_name"
         echo "  PASS  $test_name" >> "$REPORT_FILE"
@@ -79,7 +79,7 @@ assert_contains() {
 assert_contains_tolerated() {
     local test_name="$1" expected_text="$2" body="$3"
     TOTAL=$((TOTAL + 1))
-    if echo "$body" | grep -qi "$expected_text"; then
+    if echo "$body" | grep -Fiq "$expected_text"; then
         PASSED=$((PASSED + 1))
         echo -e "  ${GREEN}PASS${NC}  $test_name"
         echo "  PASS  $test_name" >> "$REPORT_FILE"
@@ -94,6 +94,39 @@ assert_contains_tolerated() {
 extract_id() {
     local body="$1" pattern="$2"
     echo "$body" | grep -oE "${pattern}/[0-9]+" | head -1 | grep -oE '[0-9]+$'
+}
+
+# Payment list: resolve /finance/payments/{id} for the row whose link text is reference (avoids first-row ≠ newest).
+extract_payment_id_for_reference() {
+    local body="$1" ref="$2"
+    python3 -c '
+import re, sys
+ref = sys.argv[1]
+body = sys.stdin.read()
+# Thymeleaf: <a href="/finance/payments/42" ...>REF</a>
+m = re.search(
+    r"href=\"/finance/payments/(\d+)\"[^>]*>\s*" + re.escape(ref) + r"\s*<",
+    body,
+)
+if m:
+    print(m.group(1))
+' "$ref" <<<"$body" 2>/dev/null || true
+}
+
+# Metrics list: first /admin/metrics/{id} in HTML is not necessarily the row we just created; match slug in <code>.
+extract_metric_id_for_slug() {
+    local body="$1" slug="$2"
+    python3 -c '
+import re, sys
+slug, body = sys.argv[1], sys.stdin.read()
+i = body.find("<code>" + slug + "</code>")
+if i < 0:
+    sys.exit(0)
+win = body[i : i + 800]
+m = re.search(r"/admin/metrics/(\d+)", win)
+if m:
+    print(m.group(1))
+' "$slug" <<<"$body" 2>/dev/null || true
 }
 
 json_top_level_long_id() {
@@ -115,18 +148,37 @@ except Exception:
 json_first_draft_metric_version_id() {
     local json="$1"
     if command -v jq >/dev/null 2>&1; then
-        echo "$json" | jq -r 'map(select((.status|tostring|ascii_downcase)=="draft")) | .[0].id // empty' 2>/dev/null || true
+        echo "$json" | jq -r '
+            (if type == "array" then . else [] end)
+            | map(select((.status|tostring|ascii_downcase)=="draft"))
+            | .[0].id // empty
+        ' 2>/dev/null || true
         return
     fi
-    echo "$json" | python3 -c 'import json,sys
+    echo "$json" | python3 -c 'import json, sys, re
+def norm(s):
+    if s is None:
+        return ""
+    return str(s).strip().strip("\"").lower()
+raw = sys.stdin.read()
 try:
-    for v in json.load(sys.stdin):
-        st=v.get("status")
-        if st is not None and str(st).upper()=="DRAFT":
-            print(v.get("id",""))
+    data = json.loads(raw.strip() or "[]")
+    if not isinstance(data, list):
+        data = []
+    for v in data:
+        if not isinstance(v, dict):
+            continue
+        if norm(v.get("status")) == "draft":
+            vid = v.get("id")
+            if vid is not None:
+                print(vid)
             break
-except Exception:
-    pass
+except (json.JSONDecodeError, TypeError, ValueError):
+    m = re.search(r"\"id\"\s*:\s*(\d+).{0,800}?\"status\"\s*:\s*\"DRAFT\"", raw, re.DOTALL | re.IGNORECASE)
+    if not m:
+        m = re.search(r"\"status\"\s*:\s*\"DRAFT\".{0,800}?\"id\"\s*:\s*(\d+)", raw, re.DOTALL | re.IGNORECASE)
+    if m:
+        print(m.group(1))
 ' 2>/dev/null || true
 }
 
@@ -281,7 +333,10 @@ do_post_body "/admin/metrics/new" \
 BODY=$(do_get_body "/admin/metrics")
 assert_contains "Derived metric created & visible" "test-growth-rate" "$BODY"
 
-METRIC_ID=$(extract_id "$BODY" "/admin/metrics")
+METRIC_ID=$(extract_metric_id_for_slug "$BODY" "test-headcount")
+if [ -z "$METRIC_ID" ]; then
+    METRIC_ID=$(extract_id "$BODY" "/admin/metrics")
+fi
 REST_PUBLISH_METRIC_ID=""
 if [ -n "$METRIC_ID" ]; then
     REST_PUBLISH_METRIC_ID="$METRIC_ID"
@@ -326,7 +381,10 @@ assert_contains "Card payment (${REF_PAY_003}) in list" "${REF_PAY_003}" "$BODY"
 
 sleep 1
 BODY=$(do_get_body "/finance/payments")
-PAY_ID=$(extract_id "$BODY" "/finance/payments")
+PAY_ID=$(extract_payment_id_for_reference "$BODY" "${REF_PAY_003}")
+if [ -z "$PAY_ID" ]; then
+    PAY_ID=$(extract_id "$BODY" "/finance/payments")
+fi
 if [ -n "$PAY_ID" ]; then
     BODY=$(do_get_body "/finance/payments/$PAY_ID")
     assert_contains "Payment detail shows reference" "${REF_PAY_003}" "$BODY"
@@ -741,6 +799,7 @@ METRIC_ID="${REST_PUBLISH_METRIC_ID:-$(extract_id "$BODY" "/admin/metrics")}"
 if [ -n "$METRIC_ID" ]; then
     do_post_body "/admin/metrics/$METRIC_ID/versions/draft" \
         "--data-urlencode changeDescription=REST+API+publish+prep" "$COOKIE_JAR" "/admin/metrics/$METRIC_ID" > /dev/null
+    sleep 0.5
 
     VERSIONS_CODE=$(curl -s -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" \
         "$BASE_URL/api/v1/metrics/$METRIC_ID/versions")
@@ -761,6 +820,7 @@ if [ -n "$METRIC_ID" ]; then
     if [ -z "$DRAFT_VID" ]; then
         do_post_body "/admin/metrics/$METRIC_ID/versions/draft" \
             "--data-urlencode changeDescription=REST+API+publish+retry+draft" "$COOKIE_JAR" "/admin/metrics/$METRIC_ID" > /dev/null
+        sleep 0.5
         VERSIONS_BODY=$(curl -s -b "$COOKIE_JAR" "$BASE_URL/api/v1/metrics/$METRIC_ID/versions")
         DRAFT_VID=$(json_first_draft_metric_version_id "$VERSIONS_BODY")
     fi
