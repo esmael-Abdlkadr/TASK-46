@@ -235,8 +235,7 @@ OVERRIDE
 docker compose -f docker-compose.yml -f docker-compose.test-override.yml up -d backend >/dev/null 2>&1
 echo -e "${CYAN}[SETUP] Waiting for backend...${NC}"
 for i in $(seq 1 30); do
-    CODE=$(curl -s --compressed -o /dev/null -w "%{http_code}" "$BASE_URL/login" 2>/dev/null)
-    if [ "$CODE" = "200" ]; then break; fi
+    if curl -s --compressed "$BASE_URL/login" 2>/dev/null | grep -q "username"; then break; fi
     sleep 2
 done
 
@@ -367,14 +366,27 @@ REF_PAY_001="PAY-API-001-${PAY_TAG}"
 REF_PAY_002="PAY-API-002-${PAY_TAG}"
 REF_PAY_003="PAY-API-003-${PAY_TAG}"
 
-do_post_body "/finance/payments/new" \
-    "--data-urlencode referenceNumber=${REF_PAY_001} --data-urlencode amount=250.00 --data-urlencode channel=CASH --data-urlencode location=Main+Office --data-urlencode payerName=John+Doe --data-urlencode description=API+test+payment" > /dev/null
-sleep 1
-do_post_body "/finance/payments/new" \
-    "--data-urlencode referenceNumber=${REF_PAY_002} --data-urlencode amount=500.00 --data-urlencode channel=CHECK --data-urlencode location=Branch+A --data-urlencode payerName=Jane+Smith --data-urlencode checkNumber=CHK-9999" > /dev/null
-sleep 1
-do_post_body "/finance/payments/new" \
-    "--data-urlencode referenceNumber=${REF_PAY_003} --data-urlencode amount=75.50 --data-urlencode channel=MANUAL_CARD --data-urlencode location=Main+Office --data-urlencode cardLastFour=4321" > /dev/null
+for _try in 1 2; do
+    do_post_body "/finance/payments/new" \
+        "--data-urlencode referenceNumber=${REF_PAY_001} --data-urlencode amount=250.00 --data-urlencode channel=CASH --data-urlencode location=Main+Office --data-urlencode payerName=John+Doe --data-urlencode description=API+test+payment" > /dev/null
+    sleep 1
+    do_get_body "/finance/payments" | grep -Fq "$REF_PAY_001" && break
+    sleep 2
+done
+for _try in 1 2; do
+    do_post_body "/finance/payments/new" \
+        "--data-urlencode referenceNumber=${REF_PAY_002} --data-urlencode amount=500.00 --data-urlencode channel=CHECK --data-urlencode location=Branch+A --data-urlencode payerName=Jane+Smith --data-urlencode checkNumber=CHK-9999" > /dev/null
+    sleep 1
+    do_get_body "/finance/payments" | grep -Fq "$REF_PAY_002" && break
+    sleep 2
+done
+for _try in 1 2; do
+    do_post_body "/finance/payments/new" \
+        "--data-urlencode referenceNumber=${REF_PAY_003} --data-urlencode amount=75.50 --data-urlencode channel=MANUAL_CARD --data-urlencode location=Main+Office --data-urlencode cardLastFour=4321" > /dev/null
+    sleep 1
+    do_get_body "/finance/payments" | grep -Fq "$REF_PAY_003" && break
+    sleep 2
+done
 
 BODY=$(do_get_body "/finance/payments")
 assert_contains "Cash payment (${REF_PAY_001}) in list" "${REF_PAY_001}" "$BODY"
@@ -422,7 +434,7 @@ ${REF_PAY_002},500.00,2026-04-02,Payment two
 BANK-ONLY-001,999.99,2026-04-03,Unmatched bank entry
 CSVEOF
 
-CSRF=$(curl -s --compressed -b "$COOKIE_JAR" "$BASE_URL/finance/bank-files" | grep -o 'value="[^"]*"' | head -1 | sed 's/value="//;s/"//')
+CSRF=$(curl -s --compressed -b "$COOKIE_JAR" -c "$COOKIE_JAR" "$BASE_URL/finance/bank-files" | grep -o 'value="[^"]*"' | head -1 | sed 's/value="//;s/"//')
 curl -s --compressed -b "$COOKIE_JAR" -c "$COOKIE_JAR" -o /dev/null \
     -X POST "$BASE_URL/finance/bank-files/upload" -F "_csrf=$CSRF" -F "file=@$BANK_CSV"
 BODY=$(do_get_body "/finance/bank-files")
@@ -430,7 +442,7 @@ assert_contains "Bank file imported & visible" "test_bank_file.csv" "$BODY"
 IMPORT_COUNT_AFTER_FIRST=$(echo "$BODY" | grep -oE '/finance/bank-files/[0-9]+' | sort -u | wc -l | tr -d ' ')
 
 # Duplicate import — same bytes must not add a row (stable across DBs that already have older imports)
-CSRF=$(curl -s --compressed -b "$COOKIE_JAR" "$BASE_URL/finance/bank-files" | grep -o 'value="[^"]*"' | head -1 | sed 's/value="//;s/"//')
+CSRF=$(curl -s --compressed -b "$COOKIE_JAR" -c "$COOKIE_JAR" "$BASE_URL/finance/bank-files" | grep -o 'value="[^"]*"' | head -1 | sed 's/value="//;s/"//')
 curl -s --compressed -b "$COOKIE_JAR" -c "$COOKIE_JAR" -o /dev/null \
     -X POST "$BASE_URL/finance/bank-files/upload" -F "_csrf=$CSRF" -F "file=@$BANK_CSV"
 BODY=$(do_get_body "/finance/bank-files")

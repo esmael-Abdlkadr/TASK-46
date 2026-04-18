@@ -1,9 +1,9 @@
 ================================================================
   WORKFORCE & TALENT OPERATIONS HUB - TEST REPORT
-  Generated: 2026-04-18 08:32:23
+  Generated: 2026-04-18 08:55:47
 ================================================================
 
-Unit Test Report - 2026-04-18 08:32:55
+Unit Test Report - 2026-04-18 08:56:20
 ============================================================
 
 
@@ -72,7 +72,7 @@ Test Classes:
 
 === ALL UNIT TESTS PASSED ===
 
-API Functional Test Report - 2026-04-18 08:35:47
+API Functional Test Report - 2026-04-18 08:59:25
 Base URL: http://localhost:8081
 ============================================================
 
@@ -116,9 +116,9 @@ Base URL: http://localhost:8081
   PASS  Dimension created
 
 --- 5. PAYMENTS - CRUD & IDEMPOTENCY ---
-  PASS  Cash payment (PAY-API-001-177649055919933) in list
-  PASS  Check payment (PAY-API-002-177649055919933) in list
-  PASS  Card payment (PAY-API-003-177649055919933) in list
+  PASS  Cash payment (PAY-API-001-17764919772831) in list
+  PASS  Check payment (PAY-API-002-17764919772831) in list
+  PASS  Card payment (PAY-API-003-17764919772831) in list
   PASS  Payment detail shows reference
   PASS  Payment detail shows idempotency key
   PASS  Partial refund processed & visible
@@ -253,18 +253,18 @@ Run `npm audit` for details.
 
 [1m[7m[36m RUN [39m[27m[22m [36mv2.1.9 [39m[90m/app[39m
 
- [32m✓[39m src/main/resources/static/js/app.spec.js [2m([22m[2m1 test[22m[2m)[22m[90m 55[2mms[22m[39m
- [32m✓[39m src/main/resources/static/js/workforce-ui.spec.js [2m([22m[2m4 tests[22m[2m)[22m[90m 52[2mms[22m[39m
+ [32m✓[39m src/main/resources/static/js/workforce-ui.spec.js [2m([22m[2m4 tests[22m[2m)[22m[90m 34[2mms[22m[39m
+ [32m✓[39m src/main/resources/static/js/app.spec.js [2m([22m[2m1 test[22m[2m)[22m[90m 23[2mms[22m[39m
 
 [2m Test Files [22m [1m[32m2 passed[39m[22m[90m (2)[39m
 [2m      Tests [22m [1m[32m5 passed[39m[22m[90m (5)[39m
-[2m   Start at [22m 05:37:54
-[2m   Duration [22m 15.92s[2m (transform 798ms, setup 0ms, collect 2.03s, tests 107ms, environment 16.64s, prepare 4.16s)[22m
+[2m   Start at [22m 06:01:52
+[2m   Duration [22m 28.78s[2m (transform 614ms, setup 0ms, collect 828ms, tests 58ms, environment 27.69s, prepare 12.47s)[22m
 
 
 Running 7 tests using 1 worker
 ·······
-  7 passed (23.7s)
+  7 passed (4.4s)
 
 ================================================================
   FINAL SUMMARY

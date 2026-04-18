@@ -1,4 +1,4 @@
-API Functional Test Report - 2026-04-18 08:35:47
+API Functional Test Report - 2026-04-18 08:59:25
 Base URL: http://localhost:8081
 ============================================================
 
@@ -42,9 +42,9 @@ Base URL: http://localhost:8081
   PASS  Dimension created
 
 --- 5. PAYMENTS - CRUD & IDEMPOTENCY ---
-  PASS  Cash payment (PAY-API-001-177649055919933) in list
-  PASS  Check payment (PAY-API-002-177649055919933) in list
-  PASS  Card payment (PAY-API-003-177649055919933) in list
+  PASS  Cash payment (PAY-API-001-17764919772831) in list
+  PASS  Check payment (PAY-API-002-17764919772831) in list
+  PASS  Card payment (PAY-API-003-17764919772831) in list
   PASS  Payment detail shows reference
   PASS  Payment detail shows idempotency key
   PASS  Partial refund processed & visible
