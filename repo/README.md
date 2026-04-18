@@ -1,6 +1,6 @@
 # Workforce & Talent Operations Hub
 
-On-premises workforce management system with recruiting, dispatch, payments, metrics, and biometric identity verification.
+**Fullstack** on-premises workforce management system with recruiting, dispatch, payments, metrics, and biometric identity verification. Backend: Java 17 / Spring Boot 3.2. Frontend: Thymeleaf server-rendered HTML. Microservice: Python 3.11 / Flask (face recognition).
 
 ## Prerequisites
 
@@ -11,15 +11,111 @@ On-premises workforce management system with recruiting, dispatch, payments, met
 ## Quick Start
 
 ```bash
+# Start all services (literal command required):
+docker-compose up
+
+# Or run in detached mode:
 docker compose up -d
-# Wait ~40s for MySQL + Flyway migrations + Spring Boot startup
-# All 3 containers should show "healthy":
+```
+
+Wait ~40s for MySQL + Flyway migrations + Spring Boot startup. All 3 containers should show "healthy":
+
+```bash
 docker compose ps
 ```
 
-Open http://localhost:8081 and login:
-- **Username:** `admin`
-- **Password:** `admin123`
+## Demo Credentials
+
+Seeded on first startup by `DataInitializer.java` (skipped if username already exists):
+
+| Role | Username | Password | Dashboard URL |
+|---|---|---|---|
+| **Administrator** | `admin` | `admin123` | http://localhost:8081/admin/dashboard |
+| **Recruiter** | `recruiter` | `recruiter123` | http://localhost:8081/recruiter/dashboard |
+| **Dispatch Supervisor** | `dispatch` | `dispatch123` | http://localhost:8081/dispatch/dashboard |
+| **Finance Clerk** | `finance` | `finance123` | http://localhost:8081/finance/payments |
+
+You can create additional users under **Admin > Users** while logged in as `admin`.
+
+## Verification
+
+### API Verification (curl)
+
+**Successful authentication and session check:**
+```bash
+# Step 1: Get CSRF token
+CSRF=$(curl -s -c /tmp/wf.txt http://localhost:8081/login | grep -o 'value="[^"]*"' | head -1 | sed 's/value="//;s/"//')
+
+# Step 2: Login
+curl -s -b /tmp/wf.txt -c /tmp/wf.txt -o /dev/null \
+  -X POST http://localhost:8081/login \
+  --data-urlencode "username=admin" \
+  --data-urlencode "password=admin123" \
+  --data-urlencode "_csrf=$CSRF"
+
+# Step 3: Call session API (should return {"authenticated":true,"username":"admin",...})
+curl -s -b /tmp/wf.txt http://localhost:8081/api/v1/session
+```
+
+**Expected response:**
+```json
+{"authenticated":true,"username":"admin","roles":["ADMINISTRATOR"]}
+```
+
+**Unauthenticated request (should redirect to login):**
+```bash
+curl -v http://localhost:8081/api/v1/session
+# Expected: HTTP 302 redirect to /login
+```
+
+**Authentication failure (wrong password):**
+```bash
+CSRF=$(curl -s -c /tmp/wf_bad.txt http://localhost:8081/login | grep -o 'value="[^"]*"' | head -1 | sed 's/value="//;s/"//')
+curl -s -b /tmp/wf_bad.txt -c /tmp/wf_bad.txt -o /dev/null -w "%{http_code}" \
+  -X POST http://localhost:8081/login \
+  --data-urlencode "username=admin" \
+  --data-urlencode "password=wrongpassword" \
+  --data-urlencode "_csrf=$CSRF"
+# Expected: 302 (redirect to /login?error)
+```
+
+**Payment API - create and list:**
+```bash
+# Create payment (requires authenticated session from Step 2 above)
+curl -s -b /tmp/wf.txt -X POST http://localhost:8081/api/v1/payments \
+  -H "Content-Type: application/json" \
+  -d '{"referenceNumber":"VERIFY-001","amount":100.00,"channel":"CASH","location":"HQ"}'
+
+# List payments
+curl -s -b /tmp/wf.txt http://localhost:8081/api/v1/payments
+```
+
+**Error envelope - validation failure:**
+```bash
+curl -s -b /tmp/wf.txt -X POST http://localhost:8081/api/v1/payments \
+  -H "Content-Type: application/json" -d '{}'
+# Expected:
+# {"status":400,"code":"VALIDATION_ERROR","message":"Validation failed","fieldErrors":[...],"timestamp":"...","path":"/api/v1/payments"}
+```
+
+### Web Verification (browser)
+
+1. **Admin login:** Open http://localhost:8081 → login with `admin` / `admin123` → should reach `/admin/dashboard`
+2. **Recruiter (seeded):** Log in with `recruiter` / `recruiter123` → should reach `/recruiter/dashboard`; `/admin/dashboard` should return 403
+3. **Dispatch (seeded):** Log in with `dispatch` / `dispatch123` → should reach `/dispatch/dashboard`
+4. **Finance (seeded):** Log in with `finance` / `finance123` → can open `/finance/payments`; should not access `/admin/dashboard` or `/recruiter/candidates`
+5. **Optional:** Create another user under Admin > Users to confirm user management
+6. **Face recognition:** Admin > Face Recognition → should show "Connected" to service on port 5001
+
+## Acceptance Checklist (Reviewers)
+
+- [ ] `docker-compose up` starts all 3 containers without errors
+- [ ] `docker compose ps` shows `workforce-db`, `workforce-face`, `workforce-backend` all healthy
+- [ ] Login with `admin` / `admin123` → `/admin/dashboard` loads (HTTP 200)
+- [ ] API session endpoint returns `{"authenticated":true}`: `curl -s -b /tmp/wf.txt http://localhost:8081/api/v1/session`
+- [ ] Log in as `recruiter` / `recruiter123` → `/recruiter/dashboard` loads; `/admin/dashboard` returns 403
+- [ ] Unauthenticated request to `/api/v1/payments` redirects (HTTP 302)
+- [ ] `./run_tests.sh` exits with status 0 (all tests pass)
 
 ## Configuration / Environment Variables
 
@@ -69,9 +165,9 @@ docker exec -it workforce-db mysql -uroot -proot workforce_db
 The first startup automatically:
 1. Runs all Flyway migrations (creates 43+ tables)
 2. Seeds 4 roles: ADMINISTRATOR, RECRUITER, DISPATCH_SUPERVISOR, FINANCE_CLERK
-3. Creates admin user: `admin` / `admin123`
+3. Seeds demo users (see Demo Credentials): `admin`, `recruiter`, `dispatch`, `finance`
 
-Create additional users via Admin > Users after login.
+Create additional users via Admin > Users after login if needed.
 
 ## REST API
 
@@ -125,24 +221,30 @@ If upgrading from a previous version:
 
 ## Running Tests
 
+All suites are orchestrated by `./run_tests.sh`. **Host Node/npm is not required** — frontend unit tests (Vitest) and Playwright E2E run inside the official Playwright Docker image (`docker/js-tests/run-js-tests.sh`). Java unit tests already run inside Docker Maven (`unit_tests/run_unit_tests.sh`).
+
+For modes **`all`**, **`api`**, and **`js`**, the script **`cd`s to the repo**, runs **`docker compose up -d`**, then waits until **three** compose services report **healthy** before continuing — no separate manual compose step is required.
+
 ```bash
-# Full suite (unit + integration + API):
+# Full suite: start stack + JUnit (Docker Maven) + curl API + Vitest + Playwright E2E (Docker):
 ./run_tests.sh
 
-# Unit tests only:
+# Unit tests only (JUnit via Docker Maven; no full stack):
 ./run_tests.sh unit
 
-# API tests only:
+# API tests only (stack started by this script, then curl from host):
 ./run_tests.sh api
 
-# Maven test execution (all JUnit tests):
-./mvnw test -Dspring.profiles.active=test
+# Vitest + Playwright E2E only (stack started first; backend at 8081 for E2E):
+./run_tests.sh js
 
-# Run specific test class:
-./mvnw test -Dtest=ObjectLevelAuthzTest -Dspring.profiles.active=test
+# Refresh package-lock.json without local npm (one-time / when dependencies change):
+# docker run --rm -v "$PWD:/app" -w /app node:20-bookworm-slim npm install
 ```
 
 ### Test Coverage Scope
+
+Playwright E2E (`e2e/*.spec.js`) exercises **login**, **admin** (dashboard / users), **recruiter** (dashboard → unified search), **finance** (payments), and **cross-role** denial where applicable.
 
 Tests cover:
 - **Security:** Route-level auth (401/403), object-level authz (IDOR prevention), cross-user isolation
@@ -151,11 +253,15 @@ Tests cover:
 - **Import:** Missing headers, unknown headers, wrong-type rows, duplicate fingerprints, validation ordering
 - **Encryption:** Missing key fail-fast, invalid key length, invalid Base64
 - **Search:** Cross-domain results, domain filtering, location filtering
+- **Write endpoints:** Create/update for dispatch, recruiting, admin user management
+- **API contracts:** Full error envelope (code + fieldErrors + path + timestamp) on all 4xx responses
+
+Some Spring REST paths are covered both by **`API_tests/run_api_tests.sh`** (curl against the running stack) and by **`MockMvc`** tests under `src/test/java/.../controller/api/` (no TCP hop but full controller stack). Both are intentional: curl proves wiring through the servlet container; MockMvc enables tight JSON assertions with isolated test data.
 
 Test outputs:
 - `unit_tests/unit_test_results.txt` -- JUnit results
 - `API_tests/api_test_results.txt` -- API test results
-- `test_report.txt` -- combined summary
+- `test_report.txt` -- combined summary (includes Vitest + Playwright logs when Phase 3 runs)
 
 ## Project Structure
 

@@ -79,13 +79,16 @@ class RestApiSecurityTest {
 
     @Test
     @WithMockUser(roles = "FINANCE_CLERK")
-    void payment_missingFields_notOk() throws Exception {
+    void payment_missingFields_returns400WithValidationErrorEnvelope() throws Exception {
         mockMvc.perform(post("/api/v1/payments")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
-                .andExpect(result -> assertNotEquals(201,
-                        result.getResponse().getStatus(),
-                        "Empty body should not create payment"));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.fieldErrors").isArray())
+                .andExpect(jsonPath("$.timestamp").exists())
+                .andExpect(jsonPath("$.path").value("/api/v1/payments"));
     }
 
     @Test

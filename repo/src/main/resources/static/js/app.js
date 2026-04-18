@@ -1,10 +1,9 @@
-document.addEventListener('DOMContentLoaded', function() {
-    // Confirm before destructive actions
-    document.querySelectorAll('[data-confirm]').forEach(function(el) {
-        el.addEventListener('click', function(e) {
-            if (!confirm(el.getAttribute('data-confirm'))) {
-                e.preventDefault();
-            }
-        });
-    });
+import { attachConfirmDestructive } from './workforce-ui.js';
+
+export function initApp(root) {
+    attachConfirmDestructive(root || document);
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    initApp(document);
 });

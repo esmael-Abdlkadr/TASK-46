@@ -244,6 +244,17 @@ class ObjectLevelAuthzTest {
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
     }
 
+    @Test
+    @WithMockUser(username = "admin", roles = "ADMINISTRATOR")
+    void export_create_validRequest_returnsJob() throws Exception {
+        mockMvc.perform(post("/api/v1/exports")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Mock Export Job\",\"exportType\":\"departments\",\"fileFormat\":\"csv\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Mock Export Job"))
+                .andExpect(jsonPath("$.exportType").value("departments"));
+    }
+
     // --- Unauthenticated tests ---
 
     @Test

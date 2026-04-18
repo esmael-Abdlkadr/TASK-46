@@ -25,3 +25,20 @@ repo/.env.*
 
 # Local logs
 *.log
+
+# JS tests (Docker generates via npm ci inside container — never commit node_modules)
+repo/node_modules/
+repo/playwright-report/
+repo/test-results/
+
+# Test / run artifacts (H2 + file storage during mvn / API runs)
+repo/test-imports/
+repo/test-file-store/
+repo/test-exports/
+repo/unit_tests/unit_test_results.txt
+repo/unit_tests/maven_output.log
+repo/API_tests/api_test_results.txt
+repo/test_report.txt
+
+# Intentionally committed: audit and local reports under .tmp/ (do not gitignore)
+

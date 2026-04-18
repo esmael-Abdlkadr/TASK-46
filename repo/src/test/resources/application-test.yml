@@ -18,7 +18,7 @@ app:
   encryption:
     key: dGhpcy1pcy1hLTMyLWJ5dGUta2V5ISEhMTIzNDU2Nzg=
   rate-limit:
-    requests-per-minute: 100
+    requests-per-minute: 10000
   face-recognition:
     base-url: http://localhost:5001
     timeout-ms: 5000

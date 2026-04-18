@@ -6,13 +6,13 @@
 # Outputs clear pass/fail summary for acceptance review.
 #
 # Usage:
-#   ./run_tests.sh              # Run all tests (unit + API)
-#   ./run_tests.sh unit         # Run only unit tests
-#   ./run_tests.sh api          # Run only API tests
+#   ./run_tests.sh              # Run all tests (unit + API + frontend Vitest + Playwright E2E in Docker)
+#   ./run_tests.sh unit         # Run only unit tests (JUnit via Docker Maven)
+#   ./run_tests.sh api          # Run only API tests (curl)
+#   ./run_tests.sh js           # Run only Vitest + Playwright (Docker; stack is started first)
 #
-# Prerequisites:
-#   - Docker and Docker Compose installed
-#   - docker compose services running (db, backend, face-recognition)
+# Prerequisites: Docker and Docker Compose. Modes all|api|js run
+#   docker compose up -d and wait for 3/3 healthy from this script's directory.
 ###############################################################################
 
 set -uo pipefail
@@ -48,7 +48,7 @@ cat >> "$FINAL_REPORT" << EOF
 EOF
 
 ###############################################################################
-# Pre-flight checks
+# Pre-flight checks + Docker Compose (single-command UX)
 ###############################################################################
 echo -e "${CYAN}[PRE-FLIGHT] Checking prerequisites...${NC}"
 
@@ -66,15 +66,20 @@ if ! docker compose version &> /dev/null; then
 fi
 echo "  Compose:      OK"
 
-# Check services are running
-RUNNING=$(docker compose ps --format "{{.Name}} {{.Status}}" 2>/dev/null | grep -c "healthy" || true)
-if [ "$RUNNING" -lt 3 ]; then
-    echo -e "${YELLOW}[WARN] Not all services are healthy ($RUNNING/3).${NC}"
-    echo -e "${YELLOW}       Starting services with: docker compose up -d${NC}"
-    docker compose up -d 2>&1 | tail -5
-    echo "  Waiting for services to become healthy..."
+# All compose commands run from this script's directory (works if user runs ./run_tests.sh from elsewhere)
+cd "$SCRIPT_DIR" || exit 1
+
+START_STACK=0
+case "$RUN_MODE" in all|api|js) START_STACK=1 ;; esac
+
+RUNNING=0
+if [ "$START_STACK" -eq 1 ]; then
+    echo ""
+    echo -e "${CYAN}[DOCKER] Starting stack (docker compose up -d)...${NC}"
+    docker compose up -d
+    echo -e "${CYAN}[DOCKER] Waiting for all services healthy (db + face + backend)...${NC}"
     RETRIES=0
-    while [ "$RETRIES" -lt 30 ]; do
+    while [ "$RETRIES" -lt 36 ]; do
         RUNNING=$(docker compose ps --format "{{.Name}} {{.Status}}" 2>/dev/null | grep -c "healthy" || true)
         if [ "$RUNNING" -ge 3 ]; then
             break
@@ -83,19 +88,23 @@ if [ "$RUNNING" -lt 3 ]; then
         RETRIES=$((RETRIES + 1))
     done
     if [ "$RUNNING" -lt 3 ]; then
-        echo -e "${RED}[ERROR] Services failed to become healthy.${NC}"
+        echo -e "${RED}[ERROR] Services failed to become healthy within timeout (have $RUNNING/3 healthy).${NC}"
         docker compose ps
         exit 1
     fi
+    echo -e "${GREEN}  Services:     $RUNNING/3 healthy${NC}"
+    echo ""
+    docker compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null
+    echo ""
+else
+    echo -e "${YELLOW}[INFO] Mode '$RUN_MODE' — skipping full stack (JUnit runs in isolated Maven container).${NC}"
+    echo ""
 fi
-echo "  Services:     $RUNNING/3 healthy"
-echo ""
-
-docker compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null
-echo ""
 
 UNIT_EXIT=0
 API_EXIT=0
+JS_EXIT=0
+RAN_JS=0
 UNIT_TOTAL=0; UNIT_PASSED=0; UNIT_FAILED=0
 API_TOTAL=0; API_PASSED=0; API_FAILED=0
 
@@ -145,6 +154,21 @@ if [ "$RUN_MODE" = "all" ] || [ "$RUN_MODE" = "api" ]; then
 fi
 
 ###############################################################################
+# Frontend unit + browser E2E (Vitest + Playwright — Docker only, no host npm)
+###############################################################################
+if [ "$RUN_MODE" = "all" ] || [ "$RUN_MODE" = "js" ]; then
+    echo -e "${BOLD}┌──────────────────────────────────────────────────────────┐${NC}"
+    echo -e "${BOLD}│  PHASE 3: FRONTEND + E2E (Vitest + Playwright in Docker) │${NC}"
+    echo -e "${BOLD}└──────────────────────────────────────────────────────────┘${NC}"
+    echo ""
+
+    RAN_JS=1
+    bash "$SCRIPT_DIR/docker/js-tests/run-js-tests.sh" 2>&1 | tee -a "$FINAL_REPORT"
+    JS_EXIT=${PIPESTATUS[0]}
+    echo ""
+fi
+
+###############################################################################
 # Final Summary
 ###############################################################################
 GRAND_TOTAL=$((UNIT_TOTAL + API_TOTAL))
@@ -159,6 +183,13 @@ printf "║  %-20s %8s %8s %8s  ║\n" "Category" "Total" "Passed" "Failed"
 echo "╠════════════════════════════════════════════════════════════╣"
 printf "║  %-20s %8s %8s %8s  ║\n" "Unit Tests" "$UNIT_TOTAL" "$UNIT_PASSED" "$UNIT_FAILED"
 printf "║  %-20s %8s %8s %8s  ║\n" "API Tests" "$API_TOTAL" "$API_PASSED" "$API_FAILED"
+if [ "$RAN_JS" -eq 1 ]; then
+    if [ "$JS_EXIT" -eq 0 ]; then
+        printf "║  %-20s %8s %8s %8s  ║\n" "JS Vitest+E2E" "1" "1" "0"
+    else
+        printf "║  %-20s %8s %8s %8s  ║\n" "JS Vitest+E2E" "1" "0" "1"
+    fi
+fi
 echo "╠════════════════════════════════════════════════════════════╣"
 printf "║  %-20s %8s %8s %8s  ║\n" "GRAND TOTAL" "$GRAND_TOTAL" "$GRAND_PASSED" "$GRAND_FAILED"
 echo "╚════════════════════════════════════════════════════════════╝"
@@ -171,11 +202,21 @@ cat >> "$FINAL_REPORT" << EOF
 ================================================================
   Unit Tests:    $UNIT_TOTAL total, $UNIT_PASSED passed, $UNIT_FAILED failed
   API Tests:     $API_TOTAL total, $API_PASSED passed, $API_FAILED failed
+EOF
+if [ "$RAN_JS" -eq 1 ]; then
+    if [ "$JS_EXIT" -eq 0 ]; then
+        echo "  JS Vitest+E2E: PASSED (Docker)" >> "$FINAL_REPORT"
+    else
+        echo "  JS Vitest+E2E: FAILED (Docker, exit $JS_EXIT)" >> "$FINAL_REPORT"
+    fi
+fi
+cat >> "$FINAL_REPORT" << EOF
   GRAND TOTAL:   $GRAND_TOTAL total, $GRAND_PASSED passed, $GRAND_FAILED failed
 ================================================================
 EOF
 
-if [ "$GRAND_FAILED" -eq 0 ] && [ "$UNIT_EXIT" -eq 0 ] && [ "$API_EXIT" -eq 0 ]; then
+if [ "$GRAND_FAILED" -eq 0 ] && [ "$UNIT_EXIT" -eq 0 ] && [ "$API_EXIT" -eq 0 ] \
+    && { [ "$RAN_JS" -eq 0 ] || [ "$JS_EXIT" -eq 0 ]; }; then
     echo -e "${GREEN}${BOLD}  ✓ ALL TESTS PASSED - SYSTEM ACCEPTANCE CRITERIA MET${NC}"
     echo "" >> "$FINAL_REPORT"
     echo "  RESULT: ALL TESTS PASSED - SYSTEM ACCEPTANCE CRITERIA MET" >> "$FINAL_REPORT"
