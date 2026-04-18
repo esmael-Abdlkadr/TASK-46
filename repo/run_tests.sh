@@ -79,13 +79,8 @@ case "$RUN_MODE" in all|api|js) START_STACK=1 ;; esac
 RUNNING=0
 if [ "$START_STACK" -eq 1 ]; then
     echo ""
-    if [ "${RUN_TESTS_RESET_DB:-0}" = "1" ]; then
-        echo -e "${CYAN}[DOCKER] Reset DB volume: docker compose down -v...${NC}"
-        docker compose down -v --remove-orphans 2>/dev/null || true
-    elif [ "${RUN_TESTS_FRESH:-0}" = "1" ]; then
-        echo -e "${CYAN}[DOCKER] Fresh start: docker compose down (volumes preserved)...${NC}"
-        docker compose down --remove-orphans 2>/dev/null || true
-    fi
+    echo -e "${CYAN}[DOCKER] Resetting DB volume to prevent stale Flyway state...${NC}"
+    docker compose down -v --remove-orphans 2>/dev/null || true
     echo -e "${CYAN}[DOCKER] Building images & starting stack (compose up --build)...${NC}"
     echo -e "${YELLOW}         First run may take several minutes (Maven + container pulls).${NC}"
     if ! docker compose up -d --build --remove-orphans; then

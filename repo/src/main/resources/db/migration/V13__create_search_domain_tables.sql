@@ -1,4 +1,4 @@
-CREATE TABLE members (
+CREATE TABLE IF NOT EXISTS members (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     member_code VARCHAR(30) NOT NULL UNIQUE,
     full_name VARCHAR(200) NOT NULL,
@@ -10,7 +10,7 @@ CREATE TABLE members (
     INDEX idx_member_email (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE enterprises (
+CREATE TABLE IF NOT EXISTS enterprises (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     enterprise_code VARCHAR(30) NOT NULL UNIQUE,
     name VARCHAR(200) NOT NULL,
@@ -21,7 +21,7 @@ CREATE TABLE enterprises (
     created_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE resources (
+CREATE TABLE IF NOT EXISTS resources (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     resource_code VARCHAR(30) NOT NULL UNIQUE,
     name VARCHAR(200) NOT NULL,
@@ -31,7 +31,7 @@ CREATE TABLE resources (
     created_at DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE service_orders (
+CREATE TABLE IF NOT EXISTS service_orders (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     order_code VARCHAR(30) NOT NULL UNIQUE,
     member_id BIGINT,
@@ -43,7 +43,7 @@ CREATE TABLE service_orders (
     INDEX idx_order_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE redemption_records (
+CREATE TABLE IF NOT EXISTS redemption_records (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     redemption_code VARCHAR(30) NOT NULL UNIQUE,
     member_id BIGINT NOT NULL,
