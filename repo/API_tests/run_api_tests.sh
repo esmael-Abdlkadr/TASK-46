@@ -187,8 +187,8 @@ do_login() {
     local username="$1" password="$2" jar="$3"
     rm -f "$jar"
     local csrf
-    csrf=$(curl -s -c "$jar" "$BASE_URL/login" | grep -o 'value="[^"]*"' | head -1 | sed 's/value="//;s/"//')
-    curl -s -b "$jar" -c "$jar" -o /dev/null \
+    csrf=$(curl -s --compressed -c "$jar" "$BASE_URL/login" | grep -o 'value="[^"]*"' | head -1 | sed 's/value="//;s/"//')
+    curl -s --compressed -b "$jar" -c "$jar" -o /dev/null \
         -X POST "$BASE_URL/login" \
         --data-urlencode "username=$username" \
         --data-urlencode "password=$password" \
@@ -196,20 +196,20 @@ do_login() {
 }
 
 do_get() {
-    curl -s -b "${2:-$COOKIE_JAR}" -o /dev/null -w "%{http_code}" "$BASE_URL$1"
+    curl -s --compressed -b "${2:-$COOKIE_JAR}" -o /dev/null -w "%{http_code}" "$BASE_URL$1"
 }
 
 do_get_body() {
-    curl -s -b "${2:-$COOKIE_JAR}" "$BASE_URL$1"
+    curl -s --compressed -b "${2:-$COOKIE_JAR}" "$BASE_URL$1"
 }
 
 # POST with form data. Gets CSRF from $csrf_page (4th arg) or from the POST path itself.
 do_post_body() {
     local path="$1" data="$2" jar="${3:-$COOKIE_JAR}" csrf_page="${4:-$1}"
     local page csrf
-    page=$(curl -s -b "$jar" "$BASE_URL$csrf_page")
+    page=$(curl -s --compressed -b "$jar" "$BASE_URL$csrf_page")
     csrf=$(echo "$page" | grep -o 'value="[^"]*"' | head -1 | sed 's/value="//;s/"//')
-    curl -s -L -b "$jar" -c "$jar" \
+    curl -s --compressed -L -b "$jar" -c "$jar" \
         -X POST "$BASE_URL$path" \
         --data-urlencode "_csrf=$csrf" \
         $data
@@ -235,7 +235,7 @@ OVERRIDE
 docker compose -f docker-compose.yml -f docker-compose.test-override.yml up -d backend >/dev/null 2>&1
 echo -e "${CYAN}[SETUP] Waiting for backend...${NC}"
 for i in $(seq 1 30); do
-    CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/login" 2>/dev/null)
+    CODE=$(curl -s --compressed -o /dev/null -w "%{http_code}" "$BASE_URL/login" 2>/dev/null)
     if [ "$CODE" = "200" ]; then break; fi
     sleep 2
 done
@@ -244,21 +244,21 @@ done
 section "1. SERVICE HEALTH CHECKS"
 ###############################################################################
 
-CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/login")
+CODE=$(curl -s --compressed -o /dev/null -w "%{http_code}" "$BASE_URL/login")
 assert_status "Backend login page accessible" "200" "$CODE"
 
-FACE_BODY=$(curl -s "$FACE_URL/health" 2>/dev/null || echo "UNREACHABLE")
+FACE_BODY=$(curl -s --compressed "$FACE_URL/health" 2>/dev/null || echo "UNREACHABLE")
 assert_contains "Face recognition service UP" "UP" "$FACE_BODY"
 assert_contains "Feature vector size = 128" "128" "$FACE_BODY"
 
-BODY=$(curl -s "$BASE_URL/login")
+BODY=$(curl -s --compressed "$BASE_URL/login")
 assert_contains "Login page renders HTML form" "username" "$BODY"
 
 ###############################################################################
 section "2. AUTHENTICATION & SESSION"
 ###############################################################################
 
-CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/admin/dashboard")
+CODE=$(curl -s --compressed -o /dev/null -w "%{http_code}" "$BASE_URL/admin/dashboard")
 assert_status "Unauthenticated /admin/dashboard redirects" "302" "$CODE"
 
 do_login "admin" "admin123" "$COOKIE_JAR"
@@ -266,13 +266,13 @@ CODE=$(do_get "/admin/dashboard")
 assert_status "Admin login success -> /admin/dashboard" "200" "$CODE"
 
 BAD_JAR="/tmp/wf_bad.txt"; rm -f "$BAD_JAR"
-CSRF=$(curl -s -c "$BAD_JAR" "$BASE_URL/login" | grep -o 'value="[^"]*"' | head -1 | sed 's/value="//;s/"//')
-CODE=$(curl -s -b "$BAD_JAR" -c "$BAD_JAR" -o /dev/null -w "%{http_code}" \
+CSRF=$(curl -s --compressed -c "$BAD_JAR" "$BASE_URL/login" | grep -o 'value="[^"]*"' | head -1 | sed 's/value="//;s/"//')
+CODE=$(curl -s --compressed -b "$BAD_JAR" -c "$BAD_JAR" -o /dev/null -w "%{http_code}" \
     -X POST "$BASE_URL/login" \
     --data-urlencode "username=admin" --data-urlencode "password=wrongpassword" --data-urlencode "_csrf=$CSRF")
 assert_status "Invalid password returns 302 (to login?error)" "302" "$CODE"
 
-CODE=$(curl -s -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/admin/metrics/new")
+CODE=$(curl -s --compressed -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/admin/metrics/new")
 assert_status "POST without CSRF token rejected (403)" "403" "$CODE"
 
 ###############################################################################
@@ -413,16 +413,16 @@ ${REF_PAY_002},500.00,2026-04-02,Payment two
 BANK-ONLY-001,999.99,2026-04-03,Unmatched bank entry
 CSVEOF
 
-CSRF=$(curl -s -b "$COOKIE_JAR" "$BASE_URL/finance/bank-files" | grep -o 'value="[^"]*"' | head -1 | sed 's/value="//;s/"//')
-curl -s -b "$COOKIE_JAR" -c "$COOKIE_JAR" -o /dev/null \
+CSRF=$(curl -s --compressed -b "$COOKIE_JAR" "$BASE_URL/finance/bank-files" | grep -o 'value="[^"]*"' | head -1 | sed 's/value="//;s/"//')
+curl -s --compressed -b "$COOKIE_JAR" -c "$COOKIE_JAR" -o /dev/null \
     -X POST "$BASE_URL/finance/bank-files/upload" -F "_csrf=$CSRF" -F "file=@$BANK_CSV"
 BODY=$(do_get_body "/finance/bank-files")
 assert_contains "Bank file imported & visible" "test_bank_file.csv" "$BODY"
 IMPORT_COUNT_AFTER_FIRST=$(echo "$BODY" | grep -oE '/finance/bank-files/[0-9]+' | sort -u | wc -l | tr -d ' ')
 
 # Duplicate import — same bytes must not add a row (stable across DBs that already have older imports)
-CSRF=$(curl -s -b "$COOKIE_JAR" "$BASE_URL/finance/bank-files" | grep -o 'value="[^"]*"' | head -1 | sed 's/value="//;s/"//')
-curl -s -b "$COOKIE_JAR" -c "$COOKIE_JAR" -o /dev/null \
+CSRF=$(curl -s --compressed -b "$COOKIE_JAR" "$BASE_URL/finance/bank-files" | grep -o 'value="[^"]*"' | head -1 | sed 's/value="//;s/"//')
+curl -s --compressed -b "$COOKIE_JAR" -c "$COOKIE_JAR" -o /dev/null \
     -X POST "$BASE_URL/finance/bank-files/upload" -F "_csrf=$CSRF" -F "file=@$BANK_CSV"
 BODY=$(do_get_body "/finance/bank-files")
 IMPORT_COUNT_AFTER_DUP=$(echo "$BODY" | grep -oE '/finance/bank-files/[0-9]+' | sort -u | wc -l | tr -d ' ')
@@ -472,7 +472,7 @@ BODY=$(do_get_body "/finance/settlement")
 assert_contains "Settlement page loads" "Settlement" "$BODY"
 assert_contains "Location populated from payments" "Main" "$BODY"
 
-CODE=$(curl -s -b "$COOKIE_JAR" -o /tmp/settlement_test.csv -w "%{http_code}" \
+CODE=$(curl -s --compressed -b "$COOKIE_JAR" -o /tmp/settlement_test.csv -w "%{http_code}" \
     "$BASE_URL/finance/settlement/download?location=Main+Office&yearMonth=2026-04")
 assert_status "Settlement CSV download" "200" "$CODE"
 
@@ -493,7 +493,7 @@ assert_contains "Max queued threshold shown" "100" "$BODY"
 section "9. FACE RECOGNITION SERVICE API"
 ###############################################################################
 
-BODY=$(curl -s "$FACE_URL/health")
+BODY=$(curl -s --compressed "$FACE_URL/health")
 assert_contains "Face service healthy" "UP" "$BODY"
 
 # Create a valid test PNG using Python in the face container
@@ -502,7 +502,7 @@ from PIL import Image; img = Image.new('RGB',(64,64),(128,64,32)); img.save('/tm
 " 2>/dev/null
 docker cp workforce-face:/tmp/test.png /tmp/test_face.png 2>/dev/null
 
-BODY=$(curl -s -X POST "$FACE_URL/api/extract" -F "image=@/tmp/test_face.png")
+BODY=$(curl -s --compressed -X POST "$FACE_URL/api/extract" -F "image=@/tmp/test_face.png")
 assert_contains "Feature extraction returns features" "features" "$BODY"
 assert_contains "Feature extraction returns hash" "image_hash" "$BODY"
 
@@ -512,17 +512,17 @@ if command -v python3 >/dev/null 2>&1; then
     FEATURES_JSON=$(echo "$BODY" | python3 -c 'import json,sys; print(json.dumps(json.load(sys.stdin).get("features",[])))' 2>/dev/null || echo "$FEATURES_JSON")
 fi
 if echo "$FEATURES_JSON" | grep -q '^\['; then
-    MATCH_BODY=$(curl -s -X POST "$FACE_URL/api/match" \
+    MATCH_BODY=$(curl -s --compressed -X POST "$FACE_URL/api/match" \
         -H "Content-Type: application/json" \
         -d "{\"features_a\": $FEATURES_JSON, \"features_b\": $FEATURES_JSON}")
     assert_contains "Identical features match" "true" "$MATCH_BODY"
 
     STORED_ESC=$(echo "$FEATURES_JSON" | python3 -c 'import json,sys; print(json.dumps(json.load(sys.stdin)))' 2>/dev/null)
     if [ -n "$STORED_ESC" ]; then
-        VERIFY_BODY=$(curl -s -X POST "$FACE_URL/api/verify" \
+        VERIFY_BODY=$(curl -s --compressed -X POST "$FACE_URL/api/verify" \
             -F "image=@/tmp/test_face.png" \
             -F "stored_features=$STORED_ESC")
-        VERIFY_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$FACE_URL/api/verify" \
+        VERIFY_CODE=$(curl -s --compressed -o /dev/null -w "%{http_code}" -X POST "$FACE_URL/api/verify" \
             -F "image=@/tmp/test_face.png" \
             -F "stored_features=$STORED_ESC")
         assert_status "POST /api/verify returns 200" "200" "$VERIFY_CODE"
@@ -539,10 +539,10 @@ else
     echo "  FAIL  Could not extract features" >> "$REPORT_FILE"
 fi
 
-CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$FACE_URL/api/extract")
+CODE=$(curl -s --compressed -o /dev/null -w "%{http_code}" -X POST "$FACE_URL/api/extract")
 assert_status "Extract without image returns 400" "400" "$CODE"
 
-CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$FACE_URL/api/match" \
+CODE=$(curl -s --compressed -o /dev/null -w "%{http_code}" -X POST "$FACE_URL/api/match" \
     -H "Content-Type: application/json" -d '{"features_a": [0.1, 0.2], "features_b": [0.3, 0.4]}')
 assert_status "Match with wrong vector size returns 400" "400" "$CODE"
 
@@ -607,42 +607,42 @@ section "13. REST API (/api/v1) ENDPOINTS"
 do_login "admin" "admin123" "$COOKIE_JAR"
 
 # 13.1 Session endpoint
-BODY=$(curl -s -b "$COOKIE_JAR" "$BASE_URL/api/v1/session")
+BODY=$(curl -s --compressed -b "$COOKIE_JAR" "$BASE_URL/api/v1/session")
 assert_contains "Session API returns username" "admin" "$BODY"
 
 # 13.2 Payment REST API - list
-CODE=$(curl -s -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" "$BASE_URL/api/v1/payments")
+CODE=$(curl -s --compressed -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" "$BASE_URL/api/v1/payments")
 assert_status "REST payments list" "200" "$CODE"
 
 # 13.3 Payment REST API - create with client idempotency key
-BODY=$(curl -s -b "$COOKIE_JAR" -X POST "$BASE_URL/api/v1/payments" \
+BODY=$(curl -s --compressed -b "$COOKIE_JAR" -X POST "$BASE_URL/api/v1/payments" \
     -H "Content-Type: application/json" \
     -d '{"idempotencyKey":"api-idem-key-001","referenceNumber":"API-PAY-001","amount":123.45,"channel":"CASH","location":"HQ"}')
 assert_contains "REST payment created" "API-PAY-001" "$BODY"
 REST_PAY_ID=$(echo "$BODY" | grep -o '"id":[0-9]*' | head -1 | grep -o '[0-9]*')
 
 # 13.4 Idempotency: same key returns same record
-BODY2=$(curl -s -b "$COOKIE_JAR" -X POST "$BASE_URL/api/v1/payments" \
+BODY2=$(curl -s --compressed -b "$COOKIE_JAR" -X POST "$BASE_URL/api/v1/payments" \
     -H "Content-Type: application/json" \
     -d '{"idempotencyKey":"api-idem-key-001","referenceNumber":"API-PAY-001","amount":123.45,"channel":"CASH"}')
 assert_contains "Duplicate idempotency key returns same" "API-PAY-001" "$BODY2"
 
 # 13.5 Search REST API
-BODY=$(curl -s -b "$COOKIE_JAR" -X POST "$BASE_URL/api/v1/search" \
+BODY=$(curl -s --compressed -b "$COOKIE_JAR" -X POST "$BASE_URL/api/v1/search" \
     -H "Content-Type: application/json" -d '{"keyword":""}')
 assert_status "REST search returns 200" "200" \
-    "$(curl -s -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/api/v1/search" \
+    "$(curl -s --compressed -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/api/v1/search" \
     -H "Content-Type: application/json" -d '{"keyword":""}')"
 
 # 13.6 Validation error handled gracefully
-BODY=$(curl -s -b "$COOKIE_JAR" -X POST "$BASE_URL/api/v1/payments" \
+BODY=$(curl -s --compressed -b "$COOKIE_JAR" -X POST "$BASE_URL/api/v1/payments" \
     -H "Content-Type: application/json" -d '{}')
 assert_contains "Validation error handled" "VALIDATION_ERROR" "$BODY"
 
 # 13.6b REST GET coverage: payment detail, exports list, imports list, import 404
 if [ -n "${REST_PAY_ID:-}" ]; then
-    PD_CODE=$(curl -s -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" "$BASE_URL/api/v1/payments/$REST_PAY_ID")
-    PD_BODY=$(curl -s -b "$COOKIE_JAR" "$BASE_URL/api/v1/payments/$REST_PAY_ID")
+    PD_CODE=$(curl -s --compressed -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" "$BASE_URL/api/v1/payments/$REST_PAY_ID")
+    PD_BODY=$(curl -s --compressed -b "$COOKIE_JAR" "$BASE_URL/api/v1/payments/$REST_PAY_ID")
     assert_status "REST GET /api/v1/payments/{id} returns 200" "200" "$PD_CODE"
     assert_contains "Payment detail JSON has referenceNumber" "API-PAY-001" "$PD_BODY"
 else
@@ -651,8 +651,8 @@ else
     echo "  FAIL  No payment id for GET detail" >> "$REPORT_FILE"
 fi
 
-EXP_LIST_CODE=$(curl -s -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" "$BASE_URL/api/v1/exports")
-EXP_LIST_BODY=$(curl -s -b "$COOKIE_JAR" "$BASE_URL/api/v1/exports")
+EXP_LIST_CODE=$(curl -s --compressed -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" "$BASE_URL/api/v1/exports")
+EXP_LIST_BODY=$(curl -s --compressed -b "$COOKIE_JAR" "$BASE_URL/api/v1/exports")
 assert_status "REST GET /api/v1/exports returns 200" "200" "$EXP_LIST_CODE"
 TOTAL=$((TOTAL + 1))
 if echo "$EXP_LIST_BODY" | grep -q '^\['; then
@@ -665,8 +665,8 @@ else
     echo "  FAIL  exports list not JSON array" >> "$REPORT_FILE"
 fi
 
-IMP_LIST_CODE=$(curl -s -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" "$BASE_URL/api/v1/imports")
-IMP_LIST_BODY=$(curl -s -b "$COOKIE_JAR" "$BASE_URL/api/v1/imports")
+IMP_LIST_CODE=$(curl -s --compressed -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" "$BASE_URL/api/v1/imports")
+IMP_LIST_BODY=$(curl -s --compressed -b "$COOKIE_JAR" "$BASE_URL/api/v1/imports")
 assert_status "REST GET /api/v1/imports returns 200" "200" "$IMP_LIST_CODE"
 TOTAL=$((TOTAL + 1))
 if echo "$IMP_LIST_BODY" | grep -q '^\['; then
@@ -679,22 +679,22 @@ else
     echo "  FAIL  imports list not JSON array" >> "$REPORT_FILE"
 fi
 
-IMP404_BODY=$(curl -s -b "$COOKIE_JAR" "$BASE_URL/api/v1/imports/99999")
-IMP404_CODE=$(curl -s -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" "$BASE_URL/api/v1/imports/99999")
+IMP404_BODY=$(curl -s --compressed -b "$COOKIE_JAR" "$BASE_URL/api/v1/imports/99999")
+IMP404_CODE=$(curl -s --compressed -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" "$BASE_URL/api/v1/imports/99999")
 assert_status "REST GET /api/v1/imports/99999 returns 404" "404" "$IMP404_CODE"
 assert_contains "Import 404 has NOT_FOUND" "NOT_FOUND" "$IMP404_BODY"
 
 # 13.7 Non-existent export — REST JSON envelope (not HTML Whitelabel page)
-EXP404_CODE=$(curl -s -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" "$BASE_URL/api/v1/exports/99999")
-BODY=$(curl -s -b "$COOKIE_JAR" "$BASE_URL/api/v1/exports/99999")
+EXP404_CODE=$(curl -s --compressed -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" "$BASE_URL/api/v1/exports/99999")
+BODY=$(curl -s --compressed -b "$COOKIE_JAR" "$BASE_URL/api/v1/exports/99999")
 assert_status "Non-existent export returns 404" "404" "$EXP404_CODE"
 assert_contains "Non-existent export has NOT_FOUND" "NOT_FOUND" "$BODY"
 
 # 13.9 POST /api/v1/exports — queue + execute export (real HTTP handler path)
-EXPORT_BODY=$(curl -s -b "$COOKIE_JAR" -X POST "$BASE_URL/api/v1/exports" \
+EXPORT_BODY=$(curl -s --compressed -b "$COOKIE_JAR" -X POST "$BASE_URL/api/v1/exports" \
     -H "Content-Type: application/json" \
     -d '{"name":"REST Export API Test","exportType":"departments","fileFormat":"csv"}')
-EXPORT_CODE=$(curl -s -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/api/v1/exports" \
+EXPORT_CODE=$(curl -s --compressed -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/api/v1/exports" \
     -H "Content-Type: application/json" \
     -d '{"name":"REST Export API Test 2","exportType":"courses","fileFormat":"csv"}')
 assert_status "REST POST /api/v1/exports returns 200" "200" "$EXPORT_CODE"
@@ -702,7 +702,7 @@ assert_contains "REST export JSON includes id" "\"id\"" "$EXPORT_BODY"
 assert_contains "REST export JSON reflects export type" "departments" "$EXPORT_BODY"
 
 # 13.10 Unauthenticated REST call
-CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/api/v1/session")
+CODE=$(curl -s --compressed -o /dev/null -w "%{http_code}" "$BASE_URL/api/v1/session")
 assert_status "Unauthenticated REST redirects" "302" "$CODE"
 
 ###############################################################################
@@ -729,11 +729,11 @@ TOTAL=$((TOTAL + 1)); PASSED=$((PASSED + 1))
 echo -e "  ${GREEN}PASS${NC}  Negative amount handled (no crash)"
 echo "  PASS  Negative amount handled" >> "$REPORT_FILE"
 
-CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/css/style.css")
+CODE=$(curl -s --compressed -o /dev/null -w "%{http_code}" "$BASE_URL/css/style.css")
 assert_status "Static CSS accessible without auth" "200" "$CODE"
 
-CSRF=$(curl -s -b "$COOKIE_JAR" "$BASE_URL/admin/dashboard" | grep -o 'value="[^"]*"' | head -1 | sed 's/value="//;s/"//')
-CODE=$(curl -s -b "$COOKIE_JAR" -c "$COOKIE_JAR" -o /dev/null -w "%{http_code}" \
+CSRF=$(curl -s --compressed -b "$COOKIE_JAR" "$BASE_URL/admin/dashboard" | grep -o 'value="[^"]*"' | head -1 | sed 's/value="//;s/"//')
+CODE=$(curl -s --compressed -b "$COOKIE_JAR" -c "$COOKIE_JAR" -o /dev/null -w "%{http_code}" \
     -X POST "$BASE_URL/logout" --data-urlencode "_csrf=$CSRF")
 assert_status "Logout returns redirect" "302" "$CODE"
 
@@ -749,7 +749,7 @@ do_login "admin" "admin123" "$COOKIE_JAR"
 
 # 15.1 POST /api/v1/payments/{id}/refund - happy path
 S15_TAG="$(date +%s)$RANDOM"
-CREATE_PAY_JSON=$(curl -s -b "$COOKIE_JAR" -w "\n%{http_code}" -X POST "$BASE_URL/api/v1/payments" \
+CREATE_PAY_JSON=$(curl -s --compressed -b "$COOKIE_JAR" -w "\n%{http_code}" -X POST "$BASE_URL/api/v1/payments" \
     -H "Content-Type: application/json" \
     -d "{\"idempotencyKey\":\"refund-section15-${S15_TAG}\",\"referenceNumber\":\"REF-SECT15-${S15_TAG}\",\"amount\":300.00,\"channel\":\"CASH\",\"location\":\"HQ\"}")
 CREATE_PAY_CODE=$(echo "$CREATE_PAY_JSON" | tail -n1)
@@ -757,10 +757,10 @@ BODY=$(echo "$CREATE_PAY_JSON" | sed '$d')
 REFUND_PAY_ID=$(json_top_level_long_id "$BODY")
 
 if [ "$CREATE_PAY_CODE" = "200" ] && [ -n "$REFUND_PAY_ID" ]; then
-    REFUND_BODY=$(curl -s -b "$COOKIE_JAR" -X POST "$BASE_URL/api/v1/payments/$REFUND_PAY_ID/refund" \
+    REFUND_BODY=$(curl -s --compressed -b "$COOKIE_JAR" -X POST "$BASE_URL/api/v1/payments/$REFUND_PAY_ID/refund" \
         -H "Content-Type: application/json" \
         -d '{"amount":50.00,"reason":"Section 15 test refund"}')
-    REFUND_CODE=$(curl -s -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" \
+    REFUND_CODE=$(curl -s --compressed -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" \
         -X POST "$BASE_URL/api/v1/payments/$REFUND_PAY_ID/refund" \
         -H "Content-Type: application/json" \
         -d '{"amount":25.00,"reason":"Second refund"}')
@@ -775,9 +775,9 @@ fi
 
 # 15.2 POST /api/v1/payments/{id}/refund - validation error (missing fields)
 if [ -n "$REFUND_PAY_ID" ]; then
-    BODY=$(curl -s -b "$COOKIE_JAR" -X POST "$BASE_URL/api/v1/payments/$REFUND_PAY_ID/refund" \
+    BODY=$(curl -s --compressed -b "$COOKIE_JAR" -X POST "$BASE_URL/api/v1/payments/$REFUND_PAY_ID/refund" \
         -H "Content-Type: application/json" -d '{}')
-    CODE=$(curl -s -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" \
+    CODE=$(curl -s --compressed -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" \
         -X POST "$BASE_URL/api/v1/payments/$REFUND_PAY_ID/refund" \
         -H "Content-Type: application/json" -d '{}')
     assert_status "Refund missing fields returns 400" "400" "$CODE"
@@ -787,9 +787,9 @@ if [ -n "$REFUND_PAY_ID" ]; then
 fi
 
 # 15.3 POST /api/v1/payments/{id}/refund - 404 on non-existent payment
-BODY=$(curl -s -b "$COOKIE_JAR" -X POST "$BASE_URL/api/v1/payments/99999/refund" \
+BODY=$(curl -s --compressed -b "$COOKIE_JAR" -X POST "$BASE_URL/api/v1/payments/99999/refund" \
     -H "Content-Type: application/json" -d '{"amount":10.00,"reason":"test"}')
-CODE=$(curl -s -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" \
+CODE=$(curl -s --compressed -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" \
     -X POST "$BASE_URL/api/v1/payments/99999/refund" \
     -H "Content-Type: application/json" -d '{"amount":10.00,"reason":"test"}')
 assert_status "Refund non-existent payment returns 404" "404" "$CODE"
@@ -804,10 +804,10 @@ if [ -n "$METRIC_ID" ]; then
         "--data-urlencode changeDescription=REST+API+publish+prep" "$COOKIE_JAR" "/admin/metrics/$METRIC_ID" > /dev/null
     sleep 0.5
 
-    VERSIONS_CODE=$(curl -s -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" \
+    VERSIONS_CODE=$(curl -s --compressed -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" \
         "$BASE_URL/api/v1/metrics/$METRIC_ID/versions")
     assert_status "REST GET /api/v1/metrics/{id}/versions returns 200" "200" "$VERSIONS_CODE"
-    VERSIONS_BODY=$(curl -s -b "$COOKIE_JAR" "$BASE_URL/api/v1/metrics/$METRIC_ID/versions")
+    VERSIONS_BODY=$(curl -s --compressed -b "$COOKIE_JAR" "$BASE_URL/api/v1/metrics/$METRIC_ID/versions")
     TOTAL=$((TOTAL + 1))
     if echo "$VERSIONS_BODY" | grep -q '^\['; then
         PASSED=$((PASSED + 1))
@@ -824,21 +824,21 @@ if [ -n "$METRIC_ID" ]; then
         do_post_body "/admin/metrics/$METRIC_ID/versions/draft" \
             "--data-urlencode changeDescription=REST+API+publish+retry+draft" "$COOKIE_JAR" "/admin/metrics/$METRIC_ID" > /dev/null
         sleep 0.5
-        VERSIONS_BODY=$(curl -s -b "$COOKIE_JAR" "$BASE_URL/api/v1/metrics/$METRIC_ID/versions")
+        VERSIONS_BODY=$(curl -s --compressed -b "$COOKIE_JAR" "$BASE_URL/api/v1/metrics/$METRIC_ID/versions")
         DRAFT_VID=$(json_first_draft_metric_version_id "$VERSIONS_BODY")
     fi
     if [ -n "$DRAFT_VID" ]; then
         PUBLISH_TMP=$(mktemp)
-        PUBLISH_CODE=$(curl -s -b "$COOKIE_JAR" -o "$PUBLISH_TMP" -w "%{http_code}" -X POST \
+        PUBLISH_CODE=$(curl -s --compressed -b "$COOKIE_JAR" -o "$PUBLISH_TMP" -w "%{http_code}" -X POST \
             "$BASE_URL/api/v1/metrics/versions/$DRAFT_VID/publish")
         PUBLISH_BODY=$(cat "$PUBLISH_TMP")
         rm -f "$PUBLISH_TMP"
         assert_status "REST POST /api/v1/metrics/versions/{versionId}/publish returns 200" "200" "$PUBLISH_CODE"
         assert_contains "Publish response shows PUBLISHED status" "PUBLISHED" "$PUBLISH_BODY"
 
-        RB_BODY=$(curl -s -b "$COOKIE_JAR" -X POST "$BASE_URL/api/v1/metrics/$METRIC_ID/rollback" \
+        RB_BODY=$(curl -s --compressed -b "$COOKIE_JAR" -X POST "$BASE_URL/api/v1/metrics/$METRIC_ID/rollback" \
             -H "Content-Type: application/json" -d '{"targetVersion":1}')
-        RB_CODE=$(curl -s -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/api/v1/metrics/$METRIC_ID/rollback" \
+        RB_CODE=$(curl -s --compressed -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/api/v1/metrics/$METRIC_ID/rollback" \
             -H "Content-Type: application/json" -d '{"targetVersion":1}')
         assert_status "REST POST /api/v1/metrics/{id}/rollback returns 200" "200" "$RB_CODE"
         assert_contains "Rollback returns PUBLISHED metric version" "PUBLISHED" "$RB_BODY"
@@ -854,13 +854,13 @@ else
 fi
 
 # 15.5 POST /api/v1/metrics/{id}/rollback - non-admin blocked
-ROLLBACK_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/api/v1/metrics/1/rollback")
+ROLLBACK_CODE=$(curl -s --compressed -o /dev/null -w "%{http_code}" "$BASE_URL/api/v1/metrics/1/rollback")
 assert_status "Unauthenticated rollback redirects" "302" "$ROLLBACK_CODE"
 
 # 15.6 GET /api/v1/search/saved - owner-scoped list
-SAVED_CODE=$(curl -s -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" "$BASE_URL/api/v1/search/saved")
+SAVED_CODE=$(curl -s --compressed -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" "$BASE_URL/api/v1/search/saved")
 assert_status "REST GET /api/v1/search/saved returns 200" "200" "$SAVED_CODE"
-SAVED_BODY=$(curl -s -b "$COOKIE_JAR" "$BASE_URL/api/v1/search/saved")
+SAVED_BODY=$(curl -s --compressed -b "$COOKIE_JAR" "$BASE_URL/api/v1/search/saved")
 TOTAL=$((TOTAL + 1))
 if echo "$SAVED_BODY" | grep -q '^\['; then
     PASSED=$((PASSED + 1))
@@ -873,12 +873,12 @@ else
 fi
 
 # 15.7 GET /api/v1/search/saved unauthenticated
-UNAUTH_SAVED_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/api/v1/search/saved")
+UNAUTH_SAVED_CODE=$(curl -s --compressed -o /dev/null -w "%{http_code}" "$BASE_URL/api/v1/search/saved")
 assert_status "Unauthenticated saved search list redirects" "302" "$UNAUTH_SAVED_CODE"
 
 # 15.8 GET /api/v1/search/saved/{id} 404 error envelope check
-SAVED_404_BODY=$(curl -s -b "$COOKIE_JAR" "$BASE_URL/api/v1/search/saved/99999")
-SAVED_404_CODE=$(curl -s -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" "$BASE_URL/api/v1/search/saved/99999")
+SAVED_404_BODY=$(curl -s --compressed -b "$COOKIE_JAR" "$BASE_URL/api/v1/search/saved/99999")
+SAVED_404_CODE=$(curl -s --compressed -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" "$BASE_URL/api/v1/search/saved/99999")
 assert_status "Saved search detail 404 returns correct status" "404" "$SAVED_404_CODE"
 assert_contains "Saved search 404 has NOT_FOUND code" "NOT_FOUND" "$SAVED_404_BODY"
 assert_contains "Saved search 404 has path" "path" "$SAVED_404_BODY"
