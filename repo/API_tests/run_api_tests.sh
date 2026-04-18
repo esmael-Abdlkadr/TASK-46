@@ -223,19 +223,15 @@ echo "  Started: $TIMESTAMP"
 echo "  Target:  $BASE_URL"
 echo "============================================================"
 
-# Temporarily raise rate limit for testing by writing a compose override
-echo -e "${CYAN}[SETUP] Raising rate limit for test run...${NC}"
+# Backend is already started by run_tests.sh with a high rate limit.
+# Just wait for the login page to be fully rendered before kicking off tests.
+echo -e "${CYAN}[SETUP] Waiting for backend to be ready...${NC}"
 cd "$PROJECT_ROOT"
-cat > docker-compose.test-override.yml << 'OVERRIDE'
-services:
-  backend:
-    environment:
-      APP_RATELIMIT_REQUESTSPERMINUTE: "1000"
-OVERRIDE
-docker compose -f docker-compose.yml -f docker-compose.test-override.yml up -d backend >/dev/null 2>&1
-echo -e "${CYAN}[SETUP] Waiting for backend...${NC}"
-for i in $(seq 1 30); do
-    if curl -s --compressed "$BASE_URL/login" 2>/dev/null | grep -q "username"; then break; fi
+for i in $(seq 1 60); do
+    if curl -s --compressed "$BASE_URL/login" 2>/dev/null | grep -q "username"; then
+        echo -e "${CYAN}[SETUP] Backend ready after ${i} polls.${NC}"
+        break
+    fi
     sleep 2
 done
 
@@ -893,13 +889,9 @@ assert_contains "Saved search 404 has path" "path" "$SAVED_404_BODY"
 assert_contains "Saved search 404 has timestamp" "timestamp" "$SAVED_404_BODY"
 
 ###############################################################################
-# Restore normal rate limit
+# Cleanup: remove any leftover test-override file from older runs
 ###############################################################################
-echo ""
-echo -e "${CYAN}[CLEANUP] Restoring normal rate limit...${NC}"
-cd "$PROJECT_ROOT"
-docker compose up -d backend >/dev/null 2>&1
-rm -f docker-compose.test-override.yml
+rm -f "$PROJECT_ROOT/docker-compose.test-override.yml" 2>/dev/null || true
 
 ###############################################################################
 # SUMMARY

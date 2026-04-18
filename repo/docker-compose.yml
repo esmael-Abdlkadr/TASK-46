@@ -52,6 +52,7 @@ services:
       APP_EXPORT_PATH: "/app/exports"
       APP_IMPORT_PATH: "/app/imports"
       APP_FILE_STORAGE_PATH: "/app/file-store"
+      APP_RATE_LIMIT_REQUESTS_PER_MINUTE: "10000"
     ports:
       - "8081:8080"
     depends_on:
