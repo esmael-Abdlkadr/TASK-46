@@ -1,4 +1,4 @@
-API Functional Test Report - 2026-04-11 23:17:07
+API Functional Test Report - 2026-04-18 08:35:47
 Base URL: http://localhost:8081
 ============================================================
 
@@ -42,13 +42,13 @@ Base URL: http://localhost:8081
   PASS  Dimension created
 
 --- 5. PAYMENTS - CRUD & IDEMPOTENCY ---
-  PASS  Cash payment (PAY-API-001) in list
-  PASS  Check payment (PAY-API-002) in list
-  PASS  Card payment (PAY-API-003) in list
+  PASS  Cash payment (PAY-API-001-177649055919933) in list
+  PASS  Check payment (PAY-API-002-177649055919933) in list
+  PASS  Card payment (PAY-API-003-177649055919933) in list
   PASS  Payment detail shows reference
   PASS  Payment detail shows idempotency key
   PASS  Partial refund processed & visible
-  PASS  Refund reason in history
+  PASS  Refund detail shows partial status
 
 --- 6. BANK FILE IMPORT & RECONCILIATION ---
   PASS  Bank file imported & visible
@@ -74,9 +74,12 @@ Base URL: http://localhost:8081
   PASS  Feature extraction returns features
   PASS  Feature extraction returns hash
   PASS  Identical features match
+  PASS  POST /api/verify returns 200 (HTTP 200)
+  PASS  Verify JSON has is_match
+  PASS  Verify JSON has similarity
   PASS  Extract without image returns 400 (HTTP 400)
   PASS  Match with wrong vector size returns 400 (HTTP 400)
-  PASS  Face recognition connected in UI
+  PASS  Face recognition admin page content
 
 --- 10. MASTER DATA CRUD ---
   PASS  Department created
@@ -91,7 +94,7 @@ Base URL: http://localhost:8081
 
 --- 12. AUDIT TRAIL ---
   PASS  Audit log page loads
-  PASS  Audit captured actions
+  PASS  Audit page shows trail heading
 
 --- 13. REST API (/api/v1) ENDPOINTS ---
   PASS  Session API returns username
@@ -100,7 +103,19 @@ Base URL: http://localhost:8081
   PASS  Duplicate idempotency key returns same
   PASS  REST search returns 200 (HTTP 200)
   PASS  Validation error handled
-  PASS  Non-existent export returns error page
+  PASS  REST GET /api/v1/payments/{id} returns 200 (HTTP 200)
+  PASS  Payment detail JSON has referenceNumber
+  PASS  REST GET /api/v1/exports returns 200 (HTTP 200)
+  PASS  REST GET /api/v1/exports JSON array
+  PASS  REST GET /api/v1/imports returns 200 (HTTP 200)
+  PASS  REST GET /api/v1/imports JSON array
+  PASS  REST GET /api/v1/imports/99999 returns 404 (HTTP 404)
+  PASS  Import 404 has NOT_FOUND
+  PASS  Non-existent export returns 404 (HTTP 404)
+  PASS  Non-existent export has NOT_FOUND
+  PASS  REST POST /api/v1/exports returns 200 (HTTP 200)
+  PASS  REST export JSON includes id
+  PASS  REST export JSON reflects export type
   PASS  Unauthenticated REST redirects (HTTP 302)
 
 --- 14. ERROR HANDLING & EDGE CASES ---
@@ -111,9 +126,35 @@ Base URL: http://localhost:8081
   PASS  Logout returns redirect (HTTP 302)
   PASS  After logout, requires login (302) (HTTP 302)
 
+--- 15. MISSING API ENDPOINTS - FULL CONTRACT COVERAGE ---
+  PASS  REST POST /api/v1/payments/{id}/refund happy path (HTTP 200)
+  PASS  Refund response contains refundedAmount
+  PASS  Refund response contains id
+  PASS  Refund missing fields returns 400 (HTTP 400)
+  PASS  Refund 400 has VALIDATION_ERROR code
+  PASS  Refund 400 has fieldErrors
+  PASS  Refund 400 has timestamp
+  PASS  Refund non-existent payment returns 404 (HTTP 404)
+  PASS  Refund 404 has NOT_FOUND code
+  PASS  Refund 404 has path
+  PASS  REST GET /api/v1/metrics/{id}/versions returns 200 (HTTP 200)
+  PASS  Versions endpoint returns JSON array
+  PASS  REST POST /api/v1/metrics/versions/{versionId}/publish returns 200 (HTTP 200)
+  PASS  Publish response shows PUBLISHED status
+  PASS  REST POST /api/v1/metrics/{id}/rollback returns 200 (HTTP 200)
+  PASS  Rollback returns PUBLISHED metric version
+  PASS  Unauthenticated rollback redirects (HTTP 302)
+  PASS  REST GET /api/v1/search/saved returns 200 (HTTP 200)
+  PASS  Saved searches returns JSON array
+  PASS  Unauthenticated saved search list redirects (HTTP 302)
+  PASS  Saved search detail 404 returns correct status (HTTP 404)
+  PASS  Saved search 404 has NOT_FOUND code
+  PASS  Saved search 404 has path
+  PASS  Saved search 404 has timestamp
+
 ============================================================
-  Total:    81
-  Passed:   81
+  Total:    120
+  Passed:   120
   Failed:   0
 ============================================================
 === ALL API TESTS PASSED ===

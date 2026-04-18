@@ -1,5 +1,278 @@
 ================================================================
   WORKFORCE & TALENT OPERATIONS HUB - TEST REPORT
-  Generated: 2026-04-11 23:14:39
+  Generated: 2026-04-18 08:32:23
 ================================================================
 
+Unit Test Report - 2026-04-18 08:32:55
+============================================================
+
+
+Test Classes:
+  PASS  com.eaglepoint.workforce.crypto.EncryptionKeyStartupTest (5 tests)
+  PASS  com.eaglepoint.workforce.crypto.BiometricAttributeConverterTest (3 tests)
+  PASS  com.eaglepoint.workforce.crypto.EncryptionKeyValidationTest (4 tests)
+  PASS  com.eaglepoint.workforce.security.SecurityConfigTest (10 tests)
+  PASS  com.eaglepoint.workforce.security.RateLimitFilterTest (1 tests)
+  PASS  com.eaglepoint.workforce.WorkforceApplicationTests (1 tests)
+  PASS  com.eaglepoint.workforce.controller.DispatchAssignmentActionsCoverageTest (3 tests)
+  PASS  com.eaglepoint.workforce.controller.RecruitingWriteControllerTest (9 tests)
+  PASS  com.eaglepoint.workforce.controller.CollectorShiftEndpointsCoverageTest (1 tests)
+  PASS  com.eaglepoint.workforce.controller.RecruitingControllerTest (10 tests)
+  PASS  com.eaglepoint.workforce.controller.MetricsControllerTest (6 tests)
+  PASS  com.eaglepoint.workforce.controller.FaceRecognitionControllerTest (7 tests)
+  PASS  com.eaglepoint.workforce.controller.DispatchWriteControllerTest (8 tests)
+  PASS  com.eaglepoint.workforce.controller.SearchExportControllerTest (7 tests)
+  PASS  com.eaglepoint.workforce.controller.AdminMetricsHtmlFlowCoverageTest (1 tests)
+  PASS  com.eaglepoint.workforce.controller.DispatchControllerTest (10 tests)
+  PASS  com.eaglepoint.workforce.controller.RecruiterPipelineSearchTalentCoverageTest (4 tests)
+  PASS  com.eaglepoint.workforce.controller.api.PaymentMaskingApiTest (4 tests)
+  PASS  com.eaglepoint.workforce.controller.api.TalentPoolAuthzTest (8 tests)
+  PASS  com.eaglepoint.workforce.controller.api.SnapshotAuthzTest (4 tests)
+  PASS  com.eaglepoint.workforce.controller.api.ObjectLevelAuthzTest (16 tests)
+  PASS  com.eaglepoint.workforce.controller.api.SavedSearchApiCoverageTest (5 tests)
+  PASS  com.eaglepoint.workforce.controller.api.RestApiSecurityTest (10 tests)
+  PASS  com.eaglepoint.workforce.controller.api.MetricsApiCoverageTest (8 tests)
+  PASS  com.eaglepoint.workforce.controller.api.PaymentApiIdempotencyTest (4 tests)
+  PASS  com.eaglepoint.workforce.controller.api.PaymentRefundApiTest (6 tests)
+  PASS  com.eaglepoint.workforce.controller.api.ErrorEnvelopeTest (6 tests)
+  PASS  com.eaglepoint.workforce.controller.AdminWriteControllerTest (9 tests)
+  PASS  com.eaglepoint.workforce.controller.FinanceControllerTest (8 tests)
+  PASS  com.eaglepoint.workforce.controller.FormImportExportMasterDataCoverageTest (3 tests)
+  PASS  com.eaglepoint.workforce.service.FileStorageServiceTest (5 tests)
+  PASS  com.eaglepoint.workforce.service.ImportServiceTest (4 tests)
+  PASS  com.eaglepoint.workforce.service.MasterDataServiceTest (7 tests)
+  PASS  com.eaglepoint.workforce.service.SearchSnapshotServiceTest (3 tests)
+  PASS  com.eaglepoint.workforce.service.UnifiedSearchServiceTest (4 tests)
+  PASS  com.eaglepoint.workforce.service.ExportServiceTest (2 tests)
+  PASS  com.eaglepoint.workforce.service.ImportStrictHeaderTest (7 tests)
+  PASS  com.eaglepoint.workforce.service.CollectorServiceTest (6 tests)
+  PASS  com.eaglepoint.workforce.service.PipelineServiceTest (5 tests)
+  PASS  com.eaglepoint.workforce.service.PaymentDomainExceptionTest (4 tests)
+  PASS  com.eaglepoint.workforce.service.MatchingServiceTest (6 tests)
+  PASS  com.eaglepoint.workforce.service.AuditServiceTest (3 tests)
+  PASS  com.eaglepoint.workforce.service.AsyncJobServiceTest (7 tests)
+  PASS  com.eaglepoint.workforce.service.ReconciliationServiceTest (4 tests)
+  PASS  com.eaglepoint.workforce.service.DispatchServiceTest (10 tests)
+  PASS  com.eaglepoint.workforce.service.PaymentServiceTest (8 tests)
+  PASS  com.eaglepoint.workforce.service.PaymentIdempotencyTest (4 tests)
+  PASS  com.eaglepoint.workforce.service.MetricDefinitionServiceTest (15 tests)
+  PASS  com.eaglepoint.workforce.service.ImportHeaderValidationTest (3 tests)
+  PASS  com.eaglepoint.workforce.service.ResourceAuthorizationTest (6 tests)
+  PASS  com.eaglepoint.workforce.service.ImportValidationOrderTest (4 tests)
+  PASS  com.eaglepoint.workforce.masking.MaskingPolicyTest (7 tests)
+  PASS  com.eaglepoint.workforce.masking.MaskingUtilTest (7 tests)
+
+------------------------------------------------------------
+  Total:    624
+  Passed:   624
+  Failed:   0
+  Errors:   0
+  Skipped:  0
+------------------------------------------------------------
+
+=== ALL UNIT TESTS PASSED ===
+
+API Functional Test Report - 2026-04-18 08:35:47
+Base URL: http://localhost:8081
+============================================================
+
+--- 1. SERVICE HEALTH CHECKS ---
+  PASS  Backend login page accessible (HTTP 200)
+  PASS  Face recognition service UP
+  PASS  Feature vector size = 128
+  PASS  Login page renders HTML form
+
+--- 2. AUTHENTICATION & SESSION ---
+  PASS  Unauthenticated /admin/dashboard redirects (HTTP 302)
+  PASS  Admin login success -> /admin/dashboard (HTTP 200)
+  PASS  Invalid password returns 302 (to login?error) (HTTP 302)
+  PASS  POST without CSRF token rejected (403) (HTTP 403)
+
+--- 3. ROLE-BASED ACCESS CONTROL (RBAC) ---
+  PASS  ADMIN -> /admin/dashboard (HTTP 200)
+  PASS  ADMIN -> /admin/users (HTTP 200)
+  PASS  ADMIN -> /admin/audit (HTTP 200)
+  PASS  ADMIN -> /admin/metrics (HTTP 200)
+  PASS  ADMIN -> /admin/jobs (HTTP 200)
+  PASS  ADMIN -> /admin/face-recognition (HTTP 200)
+  PASS  ADMIN -> /finance/payments (cross-role) (HTTP 200)
+  PASS  ADMIN -> /finance/bank-files (cross-role) (HTTP 200)
+  PASS  ADMIN -> /finance/reconciliation (cross-role) (HTTP 200)
+  PASS  ADMIN -> /finance/settlement (cross-role) (HTTP 200)
+  PASS  RECRUITER -> /recruiter/dashboard (HTTP 200)
+  PASS  RECRUITER blocked from /admin/dashboard (403) (HTTP 403)
+  PASS  RECRUITER blocked from /finance/payments (403) (HTTP 403)
+  PASS  FINANCE -> /finance/payments (HTTP 200)
+  PASS  FINANCE blocked from /admin/dashboard (403) (HTTP 403)
+  PASS  FINANCE blocked from /recruiter/dashboard (403) (HTTP 403)
+  PASS  RECRUITER -> /search/unified (shared) (HTTP 200)
+  PASS  FINANCE -> /search/unified (shared) (HTTP 200)
+
+--- 4. METRICS SEMANTIC LAYER ---
+  PASS  Base metric created & visible
+  PASS  Derived metric created & visible
+  PASS  View metric detail (HTTP 200)
+  PASS  Draft version created (v1 visible)
+  PASS  Dimension created
+
+--- 5. PAYMENTS - CRUD & IDEMPOTENCY ---
+  PASS  Cash payment (PAY-API-001-177649055919933) in list
+  PASS  Check payment (PAY-API-002-177649055919933) in list
+  PASS  Card payment (PAY-API-003-177649055919933) in list
+  PASS  Payment detail shows reference
+  PASS  Payment detail shows idempotency key
+  PASS  Partial refund processed & visible
+  PASS  Refund detail shows partial status
+
+--- 6. BANK FILE IMPORT & RECONCILIATION ---
+  PASS  Bank file imported & visible
+  PASS  Duplicate bank file rejected
+  PASS  Reconciliation ran (entries shown)
+  PASS  Exception queue page loads
+  PASS  Exception resolved
+
+--- 7. SETTLEMENT STATEMENT ---
+  PASS  Settlement page loads
+  PASS  Location populated from payments
+  PASS  Settlement CSV download (HTTP 200)
+  PASS  CSV contains header
+  PASS  CSV contains location
+
+--- 8. ASYNC JOB QUEUE & HEALTH ---
+  PASS  Job queue page loads
+  PASS  Queue health status shown
+  PASS  Max queued threshold shown
+
+--- 9. FACE RECOGNITION SERVICE API ---
+  PASS  Face service healthy
+  PASS  Feature extraction returns features
+  PASS  Feature extraction returns hash
+  PASS  Identical features match
+  PASS  POST /api/verify returns 200 (HTTP 200)
+  PASS  Verify JSON has is_match
+  PASS  Verify JSON has similarity
+  PASS  Extract without image returns 400 (HTTP 400)
+  PASS  Match with wrong vector size returns 400 (HTTP 400)
+  PASS  Face recognition admin page content
+
+--- 10. MASTER DATA CRUD ---
+  PASS  Department created
+  PASS  Departments page loads after dup attempt (HTTP 200)
+  PASS  Course created
+  PASS  Semester created
+
+--- 11. SEARCH & EXPORT/IMPORT ---
+  PASS  Unified search accessible (HTTP 200)
+  PASS  Export list accessible (HTTP 200)
+  PASS  Import list accessible (HTTP 200)
+
+--- 12. AUDIT TRAIL ---
+  PASS  Audit log page loads
+  PASS  Audit page shows trail heading
+
+--- 13. REST API (/api/v1) ENDPOINTS ---
+  PASS  Session API returns username
+  PASS  REST payments list (HTTP 200)
+  PASS  REST payment created
+  PASS  Duplicate idempotency key returns same
+  PASS  REST search returns 200 (HTTP 200)
+  PASS  Validation error handled
+  PASS  REST GET /api/v1/payments/{id} returns 200 (HTTP 200)
+  PASS  Payment detail JSON has referenceNumber
+  PASS  REST GET /api/v1/exports returns 200 (HTTP 200)
+  PASS  REST GET /api/v1/exports JSON array
+  PASS  REST GET /api/v1/imports returns 200 (HTTP 200)
+  PASS  REST GET /api/v1/imports JSON array
+  PASS  REST GET /api/v1/imports/99999 returns 404 (HTTP 404)
+  PASS  Import 404 has NOT_FOUND
+  PASS  Non-existent export returns 404 (HTTP 404)
+  PASS  Non-existent export has NOT_FOUND
+  PASS  REST POST /api/v1/exports returns 200 (HTTP 200)
+  PASS  REST export JSON includes id
+  PASS  REST export JSON reflects export type
+  PASS  Unauthenticated REST redirects (HTTP 302)
+
+--- 14. ERROR HANDLING & EDGE CASES ---
+  PASS  Non-existent metric handled (HTTP 500)
+  PASS  Missing required fields handled
+  PASS  Negative amount handled
+  PASS  Static CSS accessible without auth (HTTP 200)
+  PASS  Logout returns redirect (HTTP 302)
+  PASS  After logout, requires login (302) (HTTP 302)
+
+--- 15. MISSING API ENDPOINTS - FULL CONTRACT COVERAGE ---
+  PASS  REST POST /api/v1/payments/{id}/refund happy path (HTTP 200)
+  PASS  Refund response contains refundedAmount
+  PASS  Refund response contains id
+  PASS  Refund missing fields returns 400 (HTTP 400)
+  PASS  Refund 400 has VALIDATION_ERROR code
+  PASS  Refund 400 has fieldErrors
+  PASS  Refund 400 has timestamp
+  PASS  Refund non-existent payment returns 404 (HTTP 404)
+  PASS  Refund 404 has NOT_FOUND code
+  PASS  Refund 404 has path
+  PASS  REST GET /api/v1/metrics/{id}/versions returns 200 (HTTP 200)
+  PASS  Versions endpoint returns JSON array
+  PASS  REST POST /api/v1/metrics/versions/{versionId}/publish returns 200 (HTTP 200)
+  PASS  Publish response shows PUBLISHED status
+  PASS  REST POST /api/v1/metrics/{id}/rollback returns 200 (HTTP 200)
+  PASS  Rollback returns PUBLISHED metric version
+  PASS  Unauthenticated rollback redirects (HTTP 302)
+  PASS  REST GET /api/v1/search/saved returns 200 (HTTP 200)
+  PASS  Saved searches returns JSON array
+  PASS  Unauthenticated saved search list redirects (HTTP 302)
+  PASS  Saved search detail 404 returns correct status (HTTP 404)
+  PASS  Saved search 404 has NOT_FOUND code
+  PASS  Saved search 404 has path
+  PASS  Saved search 404 has timestamp
+
+============================================================
+  Total:    120
+  Passed:   120
+  Failed:   0
+============================================================
+=== ALL API TESTS PASSED ===
+[INFO] JS tests via mcr.microsoft.com/playwright:v1.59.1-jammy
+[INFO] E2E_BASE_URL=http://host.docker.internal:8081
+
+added 51 packages, and audited 52 packages in 2m
+
+13 packages are looking for funding
+  run `npm fund` for details
+
+6 vulnerabilities (5 moderate, 1 critical)
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+
+> test:fe
+> vitest run
+
+
+[1m[7m[36m RUN [39m[27m[22m [36mv2.1.9 [39m[90m/app[39m
+
+ [32m✓[39m src/main/resources/static/js/app.spec.js [2m([22m[2m1 test[22m[2m)[22m[90m 55[2mms[22m[39m
+ [32m✓[39m src/main/resources/static/js/workforce-ui.spec.js [2m([22m[2m4 tests[22m[2m)[22m[90m 52[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m2 passed[39m[22m[90m (2)[39m
+[2m      Tests [22m [1m[32m5 passed[39m[22m[90m (5)[39m
+[2m   Start at [22m 05:37:54
+[2m   Duration [22m 15.92s[2m (transform 798ms, setup 0ms, collect 2.03s, tests 107ms, environment 16.64s, prepare 4.16s)[22m
+
+
+Running 7 tests using 1 worker
+·······
+  7 passed (23.7s)
+
+================================================================
+  FINAL SUMMARY
+================================================================
+  Unit Tests:    624 total, 624 passed, 0 failed
+  API Tests:     120 total, 120 passed, 0 failed
+  JS Vitest+E2E: PASSED (Docker)
+  GRAND TOTAL:   744 total, 744 passed, 0 failed
+================================================================
+
+  RESULT: ALL TESTS PASSED - SYSTEM ACCEPTANCE CRITERIA MET

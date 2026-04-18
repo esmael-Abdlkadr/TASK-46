@@ -207,7 +207,7 @@ do_get_body() {
 do_post_body() {
     local path="$1" data="$2" jar="${3:-$COOKIE_JAR}" csrf_page="${4:-$1}"
     local page csrf
-    page=$(curl -s --compressed -b "$jar" "$BASE_URL$csrf_page")
+    page=$(curl -s --compressed -b "$jar" -c "$jar" "$BASE_URL$csrf_page")
     csrf=$(echo "$page" | grep -o 'value="[^"]*"' | head -1 | sed 's/value="//;s/"//')
     curl -s --compressed -L -b "$jar" -c "$jar" \
         -X POST "$BASE_URL$path" \
@@ -369,8 +369,10 @@ REF_PAY_003="PAY-API-003-${PAY_TAG}"
 
 do_post_body "/finance/payments/new" \
     "--data-urlencode referenceNumber=${REF_PAY_001} --data-urlencode amount=250.00 --data-urlencode channel=CASH --data-urlencode location=Main+Office --data-urlencode payerName=John+Doe --data-urlencode description=API+test+payment" > /dev/null
+sleep 1
 do_post_body "/finance/payments/new" \
     "--data-urlencode referenceNumber=${REF_PAY_002} --data-urlencode amount=500.00 --data-urlencode channel=CHECK --data-urlencode location=Branch+A --data-urlencode payerName=Jane+Smith --data-urlencode checkNumber=CHK-9999" > /dev/null
+sleep 1
 do_post_body "/finance/payments/new" \
     "--data-urlencode referenceNumber=${REF_PAY_003} --data-urlencode amount=75.50 --data-urlencode channel=MANUAL_CARD --data-urlencode location=Main+Office --data-urlencode cardLastFour=4321" > /dev/null
 
