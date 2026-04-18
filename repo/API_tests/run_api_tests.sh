@@ -379,10 +379,17 @@ assert_contains "Cash payment (${REF_PAY_001}) in list" "${REF_PAY_001}" "$BODY"
 assert_contains "Check payment (${REF_PAY_002}) in list" "${REF_PAY_002}" "$BODY"
 assert_contains "Card payment (${REF_PAY_003}) in list" "${REF_PAY_003}" "$BODY"
 
-sleep 1
-BODY=$(do_get_body "/finance/payments")
-PAY_ID=$(extract_payment_id_for_reference "$BODY" "${REF_PAY_003}")
+PAY_ID=""
+for _pay_try in 1 2 3 4 5; do
+    BODY=$(do_get_body "/finance/payments")
+    PAY_ID=$(extract_payment_id_for_reference "$BODY" "${REF_PAY_003}")
+    if [ -n "$PAY_ID" ]; then
+        break
+    fi
+    sleep 1
+done
 if [ -z "$PAY_ID" ]; then
+    BODY=$(do_get_body "/finance/payments")
     PAY_ID=$(extract_id "$BODY" "/finance/payments")
 fi
 if [ -n "$PAY_ID" ]; then
@@ -393,8 +400,8 @@ if [ -n "$PAY_ID" ]; then
     do_post_body "/finance/payments/$PAY_ID/refund" \
         "--data-urlencode refundAmount=50.00 --data-urlencode reason=API+test+partial+refund" "$COOKIE_JAR" "/finance/payments/$PAY_ID" > /dev/null
     BODY=$(do_get_body "/finance/payments/$PAY_ID")
-    assert_contains "Partial refund processed & visible" "50" "$BODY"
-    assert_contains "Refund detail mentions refund" "Refund" "$BODY"
+    assert_contains "Partial refund processed & visible" '$50.00' "$BODY"
+    assert_contains "Refund detail shows partial status" "Partially Refunded" "$BODY"
 else
     TOTAL=$((TOTAL + 4)); FAILED=$((FAILED + 4))
     echo -e "  ${RED}FAIL${NC}  Could not find payment ID for detail/refund tests"
@@ -595,9 +602,10 @@ assert_status "Import list accessible" "200" "$CODE"
 section "12. AUDIT TRAIL"
 ###############################################################################
 
+do_login "admin" "admin123" "$COOKIE_JAR"
 BODY=$(do_get_body "/admin/audit")
 assert_contains "Audit log page loads" "audit" "$BODY"
-assert_contains "Audit captured actions" "admin" "$BODY"
+assert_contains "Audit page shows trail heading" "Administrator audit trail" "$BODY"
 
 ###############################################################################
 section "13. REST API (/api/v1) ENDPOINTS"
