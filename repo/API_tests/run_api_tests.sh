@@ -425,9 +425,9 @@ curl -s -b "$COOKIE_JAR" -c "$COOKIE_JAR" -o /dev/null \
     -X POST "$BASE_URL/finance/bank-files/upload" -F "_csrf=$CSRF" -F "file=@$BANK_CSV"
 # After duplicate import, the bank file list should still only have 1 entry
 BODY=$(do_get_body "/finance/bank-files")
-IMPORT_COUNT=$(echo "$BODY" | grep -c "test_bank_file.csv" || true)
+IMPORT_COUNT=$(echo "$BODY" | grep -oE '/finance/bank-files/[0-9]+' | sort -u | wc -l | tr -d ' ')
 TOTAL=$((TOTAL + 1))
-if [ "$IMPORT_COUNT" -le 1 ]; then
+if [ "${IMPORT_COUNT:-0}" -le 1 ]; then
     PASSED=$((PASSED + 1))
     echo -e "  ${GREEN}PASS${NC}  Duplicate bank file rejected (still 1 import)"
     echo "  PASS  Duplicate bank file rejected" >> "$REPORT_FILE"
@@ -636,7 +636,7 @@ assert_status "REST search returns 200" "200" \
 # 13.6 Validation error handled gracefully
 BODY=$(curl -s -b "$COOKIE_JAR" -X POST "$BASE_URL/api/v1/payments" \
     -H "Content-Type: application/json" -d '{}')
-assert_contains "Validation error handled" "Error\|error\|required" "$BODY"
+assert_contains "Validation error handled" "VALIDATION_ERROR" "$BODY"
 
 # 13.6b REST GET coverage: payment detail, exports list, imports list, import 404
 if [ -n "${REST_PAY_ID:-}" ]; then
@@ -683,9 +683,11 @@ IMP404_CODE=$(curl -s -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" "$BASE_URL
 assert_status "REST GET /api/v1/imports/99999 returns 404" "404" "$IMP404_CODE"
 assert_contains "Import 404 has NOT_FOUND" "NOT_FOUND" "$IMP404_BODY"
 
-# 13.7 Non-existent export handled
+# 13.7 Non-existent export — REST JSON envelope (not HTML Whitelabel page)
+EXP404_CODE=$(curl -s -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" "$BASE_URL/api/v1/exports/99999")
 BODY=$(curl -s -b "$COOKIE_JAR" "$BASE_URL/api/v1/exports/99999")
-assert_contains "Non-existent export returns error page" "Not Found\|not found\|error" "$BODY"
+assert_status "Non-existent export returns 404" "404" "$EXP404_CODE"
+assert_contains "Non-existent export has NOT_FOUND" "NOT_FOUND" "$BODY"
 
 # 13.9 POST /api/v1/exports — queue + execute export (real HTTP handler path)
 EXPORT_BODY=$(curl -s -b "$COOKIE_JAR" -X POST "$BASE_URL/api/v1/exports" \
@@ -825,9 +827,11 @@ if [ -n "$METRIC_ID" ]; then
         DRAFT_VID=$(json_first_draft_metric_version_id "$VERSIONS_BODY")
     fi
     if [ -n "$DRAFT_VID" ]; then
-        PUBLISH_BODY=$(curl -s -b "$COOKIE_JAR" -X POST "$BASE_URL/api/v1/metrics/versions/$DRAFT_VID/publish")
-        PUBLISH_CODE=$(curl -s -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" -X POST \
+        PUBLISH_TMP=$(mktemp)
+        PUBLISH_CODE=$(curl -s -b "$COOKIE_JAR" -o "$PUBLISH_TMP" -w "%{http_code}" -X POST \
             "$BASE_URL/api/v1/metrics/versions/$DRAFT_VID/publish")
+        PUBLISH_BODY=$(cat "$PUBLISH_TMP")
+        rm -f "$PUBLISH_TMP"
         assert_status "REST POST /api/v1/metrics/versions/{versionId}/publish returns 200" "200" "$PUBLISH_CODE"
         assert_contains "Publish response shows PUBLISHED status" "PUBLISHED" "$PUBLISH_BODY"
 
