@@ -241,8 +241,9 @@ For modes **`all`**, **`api`**, and **`js`**, the script **`cd`s to the repo**, 
 # Vitest + Playwright E2E only (stack started first; backend at 8081 for E2E):
 ./run_tests.sh js
 
-# Refresh package-lock.json without local npm (one-time / when dependencies change):
-# docker run --rm -v "$PWD:/app" -w /app node:20-bookworm-slim npm install
+# Refreshing package-lock.json after package.json edits: use the Node-based Docker
+# workflow only (no host Node/npm). The exact one-liner is printed by
+# docker/js-tests/run-js-tests.sh when package-lock.json is missing — run that from repo root.
 ```
 
 ### Test Coverage Scope
