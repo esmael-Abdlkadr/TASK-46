@@ -33,7 +33,7 @@
             <div class="metric-card">
                 <h3>Queue Status</h3>
                 <span class="badge" th:text="${health['status']}"
-                      th:classappend="${health['status'] == 'HEALTHY'} ? 'badge-open' : (${health['status'] == 'WARNING'} ? 'badge-warning' : 'badge-high')"
+                      th:classappend="${health['status'] == 'HEALTHY' ? 'badge-open' : (health['status'] == 'WARNING' ? 'badge-warning' : 'badge-high')}"
                       style="font-size:1rem"></span>
                 <small>HEALTHY when queued jobs are below warning threshold.</small>
             </div>
@@ -79,7 +79,7 @@
                         <td><span class="badge badge-info" th:text="${j.jobType.displayName}"></span></td>
                         <td th:text="${j.description ?: '-'}"></td>
                         <td><span class="badge" th:text="${j.status.displayName}"
-                                  th:classappend="${j.status.name() == 'COMPLETED'} ? 'badge-open' : (${j.status.name() == 'FAILED'} ? 'badge-high' : (${j.status.name() == 'RUNNING'} ? 'badge-info' : 'badge-warning'))"></span></td>
+                                  th:classappend="${j.status.name() == 'COMPLETED' ? 'badge-open' : (j.status.name() == 'FAILED' ? 'badge-high' : (j.status.name() == 'RUNNING' ? 'badge-info' : 'badge-warning'))}"></span></td>
                         <td>
                             <div class="score-bar" style="height:16px;min-width:60px">
                                 <div class="score-fill score-high" th:style="'width:' + ${j.progressPercent} + '%'"></div>

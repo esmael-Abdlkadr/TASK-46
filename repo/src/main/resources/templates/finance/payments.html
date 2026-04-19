@@ -47,7 +47,7 @@
                     <td th:text="'$' + ${#numbers.formatDecimal(p.amount, 1, 2)}"></td>
                     <td th:text="'$' + ${#numbers.formatDecimal(p.refundedAmount, 1, 2)}"></td>
                     <td th:text="'$' + ${#numbers.formatDecimal(p.netAmount, 1, 2)}"></td>
-                    <td><span class="badge" th:text="${p.status.displayName}"></span></td>
+                    <td><span class="badge" th:text="${p.status}"></span></td>
                     <td th:text="${p.location ?: '-'}"></td>
                     <td><a th:href="@{/finance/payments/{id}(id=${p.id})}" class="btn btn-sm">View</a></td>
                 </tr>

@@ -38,7 +38,7 @@
                     <dt>Refunded</dt><dd th:text="'$' + ${#numbers.formatDecimal(payment.refundedAmount, 1, 2)}"></dd>
                     <dt>Net</dt><dd><strong th:text="'$' + ${#numbers.formatDecimal(payment.netAmount, 1, 2)}"></strong></dd>
                     <dt>Channel</dt><dd><span class="badge badge-info" th:text="${payment.channel}"></span></dd>
-                    <dt>Status</dt><dd><span class="badge" th:text="${payment.status.displayName}"></span></dd>
+                    <dt>Status</dt><dd><span class="badge" th:text="${payment.status}"></span></dd>
                     <dt>Payer</dt><dd th:text="${payment.payerName ?: '-'}"></dd>
                     <dt>Location</dt><dd th:text="${payment.location ?: '-'}"></dd>
                     <dt>Check #</dt><dd th:text="${payment.checkNumber ?: '-'}"></dd>
@@ -50,7 +50,7 @@
             </div>
 
             <!-- Refund form -->
-            <div class="panel" th:if="${payment.status.displayName != 'Refunded' and payment.status.displayName != 'Voided'}">
+            <div class="panel" th:if="${payment.status != 'Refunded' and payment.status != 'Voided'}">
                 <h3>Process Refund</h3>
                 <form th:action="@{/finance/payments/{id}/refund(id=${payment.id})}" method="post">
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
