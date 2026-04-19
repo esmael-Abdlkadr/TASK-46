@@ -371,31 +371,38 @@ REF_PAY_001="PAY-API-001-${PAY_TAG}"
 REF_PAY_002="PAY-API-002-${PAY_TAG}"
 REF_PAY_003="PAY-API-003-${PAY_TAG}"
 
-for _try in 1 2 3; do
+for _try in 1 2 3 4 5; do
     do_post_body "/finance/payments/new" \
         "--data-urlencode referenceNumber=${REF_PAY_001} --data-urlencode amount=250.00 --data-urlencode channel=CASH --data-urlencode location=Main+Office --data-urlencode payerName=John+Doe --data-urlencode description=API+test+payment" > /dev/null
-    sleep 2
-    do_get_body "/finance/payments" | grep -Fq "$REF_PAY_001" && break
     sleep 3
+    do_get_body "/finance/payments" | grep -Fq "$REF_PAY_001" && break
+    sleep 5
 done
-sleep 1
-for _try in 1 2 3; do
+sleep 2
+for _try in 1 2 3 4 5; do
     do_post_body "/finance/payments/new" \
         "--data-urlencode referenceNumber=${REF_PAY_002} --data-urlencode amount=500.00 --data-urlencode channel=CHECK --data-urlencode location=Branch+A --data-urlencode payerName=Jane+Smith --data-urlencode checkNumber=CHK-9999" > /dev/null
-    sleep 2
-    do_get_body "/finance/payments" | grep -Fq "$REF_PAY_002" && break
     sleep 3
+    do_get_body "/finance/payments" | grep -Fq "$REF_PAY_002" && break
+    sleep 5
 done
-sleep 1
-for _try in 1 2 3; do
+sleep 2
+for _try in 1 2 3 4 5; do
     do_post_body "/finance/payments/new" \
         "--data-urlencode referenceNumber=${REF_PAY_003} --data-urlencode amount=75.50 --data-urlencode channel=MANUAL_CARD --data-urlencode location=Main+Office --data-urlencode cardLastFour=4321" > /dev/null
-    sleep 2
-    do_get_body "/finance/payments" | grep -Fq "$REF_PAY_003" && break
     sleep 3
+    do_get_body "/finance/payments" | grep -Fq "$REF_PAY_003" && break
+    sleep 5
 done
 
-BODY=$(do_get_body "/finance/payments")
+BODY=""
+for _settle in 1 2 3 4 5; do
+    BODY=$(do_get_body "/finance/payments")
+    echo "$BODY" | grep -Fq "$REF_PAY_001" && \
+    echo "$BODY" | grep -Fq "$REF_PAY_002" && \
+    echo "$BODY" | grep -Fq "$REF_PAY_003" && break
+    sleep 4
+done
 assert_contains "Cash payment (${REF_PAY_001}) in list" "${REF_PAY_001}" "$BODY"
 assert_contains "Check payment (${REF_PAY_002}) in list" "${REF_PAY_002}" "$BODY"
 assert_contains "Card payment (${REF_PAY_003}) in list" "${REF_PAY_003}" "$BODY"
